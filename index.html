@@ -20,30 +20,29 @@ body{min-height:100vh;display:flex;justify-content:center;padding:12px;
 background:linear-gradient(135deg,#667eea,#764ba2)}
 .app{width:100%;max-width:390px;min-height:100vh;padding:16px;
 border-radius:22px;background:rgba(255,255,255,.18);
-backdrop-filter:blur(16px);color:#000;position:relative}
+backdrop-filter:blur(16px);color:#000}
 
-input,button{width:100%;padding:12px;border-radius:12px;
-border:none;margin-bottom:10px;font-size:14px}
+input,button{width:100%;padding:12px;border-radius:12px;border:none;margin-bottom:10px}
 button{font-weight:bold;background:rgba(255,255,255,.35)}
+#installBtn{display:none;background:#000;color:#fff}
 
-.icon{text-align:center;font-size:48px}
-.big{font-size:22px;font-weight:bold}
-
-.card{margin-bottom:12px;padding:12px;border-radius:16px;
-background:rgba(255,255,255,.25)}
-
-.details,.lifestyle{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-
-#installBtn{background:#000;color:#fff;display:none}
-
+.card{background:rgba(255,255,255,.25);padding:12px;border-radius:16px;margin-bottom:12px}
 canvas{width:100%;height:120px;border-radius:12px}
 
-.day-card{padding:12px;border-radius:16px;
-background:rgba(255,255,255,.25);margin-bottom:10px}
+.aqi{padding:6px 10px;border-radius:999px;font-weight:bold;display:inline-block}
+.good{background:#2ecc71;color:#fff}
+.moderate{background:#f1c40f;color:#000}
+.poor{background:#e67e22;color:#fff}
+.severe{background:#e53935;color:#fff}
 
-.day-header{display:flex;justify-content:space-between;font-weight:bold}
+.expand{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.expand.open{max-height:700px}
 
-.temp-range{font-size:13px;opacity:.9;margin-top:4px}
+.hour-row{display:flex;justify-content:space-between;font-size:12px;
+padding:4px 0;border-bottom:1px solid rgba(255,255,255,.2)}
+.marker{font-weight:bold;font-size:11px}
+.min{color:#42a5f5}
+.max{color:#e53935}
 
 @media(prefers-color-scheme:dark){
 body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364)}
@@ -60,96 +59,132 @@ body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364)}
 <input id="cityInput" placeholder="Search city">
 <button id="searchBtn">Search</button>
 <button id="locBtn">📍 Use My Location</button>
-
 <button id="installBtn">⬇ Install Skynox</button>
 
 <h2 id="location">--</h2>
-<div class="icon" id="icon">⛅</div>
-
 <p id="temp">--°</p>
-<p id="feels">Feels like --</p>
 
-<div class="card">
+<!-- NEXT 24H -->
+<div class="card" id="hourlyCard">
 <h4>Next 24h Temperature</h4>
-<small id="hourlyMinMax">Min --° / Max --°</small>
+<small id="hourlyMinMax">--</small>
 <canvas id="hourlyChart"></canvas>
+<div id="hourlyExpand" class="expand"></div>
 </div>
 
+<!-- AQI -->
 <div class="card">
 <h4>🌫 Air Quality (PM2.5)</h4>
-<div id="aqiBadge">--</div>
+<div id="aqiBadge" class="aqi">--</div>
+<p id="aqiTrend">--</p>
+<p id="aqiText" style="font-size:13px;margin-top:4px">--</p>
 <canvas id="aqiChart"></canvas>
 </div>
 
 <h3>📅 7-Day Forecast</h3>
 <div id="forecast"></div>
 
-<footer style="margin-top:20px;font-size:11px;text-align:center">
-© Manik Roy 2025 · Skynox
-</footer>
-
 </div>
 
 <script>
 const $=e=>document.getElementById(e);
-const icons={0:"☀",1:"🌤",2:"⛅",3:"☁",61:"🌧",71:"❄",95:"⛈"};
 
-/* ---------- CHARTS ---------- */
+/* ---------- AQI INFO ---------- */
+function aqiInfo(pm){
+if(pm<=30)return["Good","good","Air quality is good"];
+if(pm<=60)return["Moderate","moderate","Sensitive people be cautious"];
+if(pm<=90)return["Poor","poor","Avoid long outdoor activity"];
+return["Severe","severe","Stay indoors, wear mask"];
+}
+
+/* ---------- BAR CHART ---------- */
 function barChart(id,data){
 const c=$(id),ctx=c.getContext("2d");
 c.width=c.offsetWidth;c.height=120;
 ctx.clearRect(0,0,c.width,c.height);
 const min=Math.min(...data),max=Math.max(...data);
+const r=max-min||1;
 data.forEach((v,i)=>{
-const h=((v-min)/(max-min))*c.height;
+const h=((v-min)/r)*c.height;
 ctx.fillStyle="#42a5f5";
-ctx.fillRect(i*(c.width/24),c.height-h,c.width/24-2,h);
+ctx.fillRect(i*(c.width/data.length),
+c.height-h,c.width/data.length-2,h);
 });
 }
 
 /* ---------- WEATHER ---------- */
 async function loadWeather(lat,lon,name){
-const w=await fetch(
-`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}
-&current_weather=true
-&hourly=temperature_2m
-&daily=temperature_2m_min,temperature_2m_max,weathercode
-&timezone=auto`
+let w,a;
+try{
+w=await fetch(
+`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m&daily=temperature_2m_min,temperature_2m_max&timezone=auto`
 ).then(r=>r.json());
 
-const a=await fetch(
+a=await fetch(
 `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5`
 ).then(r=>r.json());
 
+localStorage.setItem("skynox_aqi_cache",JSON.stringify(a));
+}catch{
+a=JSON.parse(localStorage.getItem("skynox_aqi_cache"));
+if(!a) return;
+}
+
 $("location").textContent=name;
 $("temp").textContent=Math.round(w.current_weather.temperature)+"°C";
-$("feels").textContent="Feels like "+Math.round(w.current_weather.temperature)+"°C";
-$("icon").textContent=icons[w.current_weather.weathercode]||"⛅";
 
-/* 24h min / max */
+/* ---- 24H TEMP ---- */
 const t24=w.hourly.temperature_2m.slice(0,24);
-$("hourlyMinMax").textContent=
-"Min "+Math.min(...t24)+"° / Max "+Math.max(...t24)+"°";
-
+const minT=Math.min(...t24), maxT=Math.max(...t24);
+$("hourlyMinMax").textContent=`Min ${minT}° / Max ${maxT}°`;
 barChart("hourlyChart",t24);
 
-/* AQI */
-$("aqiBadge").textContent=a.hourly.pm2_5[0];
+/* ---- Hourly Expand ---- */
+const exp=$("hourlyExpand");
+exp.innerHTML="";
+for(let i=0;i<24;i++){
+let tag="";
+if(t24[i]===minT) tag=`<span class="marker min">● MIN</span>`;
+if(t24[i]===maxT) tag=`<span class="marker max">● MAX</span>`;
+exp.innerHTML+=`
+<div class="hour-row">
+<span>${i}:00</span>
+<span>${t24[i]}° ${tag}</span>
+<span>${w.hourly.relativehumidity_2m[i]}%</span>
+<span>${w.hourly.windspeed_10m[i]} km/h</span>
+</div>`;
+}
+
+/* ---- AQI ---- */
+const pm=a.hourly.pm2_5[0];
+const prev=a.hourly.pm2_5[1] ?? pm;
+const [label,cls,text]=aqiInfo(pm);
+
+$("aqiBadge").className="aqi "+cls;
+$("aqiBadge").textContent=pm+" · "+label;
+$("aqiText").textContent=text;
+
+$("aqiTrend").textContent=
+pm>prev?"↑ Worsening":
+pm<prev?"↓ Improving":"→ Stable";
+
 barChart("aqiChart",a.hourly.pm2_5.slice(0,24));
 
-/* Forecast */
+/* ---- Forecast ---- */
 const f=$("forecast");f.innerHTML="";
-w.daily.time.forEach((d,i)=>{
+w.daily.temperature_2m_max.forEach((_,i)=>{
 f.innerHTML+=`
-<div class="day-card">
-<div class="day-header">${d.slice(5)}</div>
-<div class="temp-range">
-Max ${w.daily.temperature_2m_max[i]}° /
-Min ${w.daily.temperature_2m_min[i]}°
-</div>
+<div class="card">
+Day ${i+1}: ${w.daily.temperature_2m_max[i]}° /
+${w.daily.temperature_2m_min[i]}°
 </div>`;
 });
 }
+
+/* ---------- TOGGLE EXPAND ---------- */
+$("hourlyCard").onclick=()=>{
+$("hourlyExpand").classList.toggle("open");
+};
 
 /* ---------- SEARCH ---------- */
 $("searchBtn").onclick=async()=>{
@@ -158,45 +193,19 @@ if(!q)return;
 const r=await fetch(
 `https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`
 ).then(r=>r.json());
-if(r.results)loadWeather(
+if(r.results)
+loadWeather(
 r.results[0].latitude,
 r.results[0].longitude,
 r.results[0].name
 );
 };
 
+/* ---------- LOCATION ---------- */
 $("locBtn").onclick=()=>{
 navigator.geolocation.getCurrentPosition(p=>
 loadWeather(p.coords.latitude,p.coords.longitude,"Current Location"));
 };
-
-/* ---------- PWA INSTALL + ANALYTICS ---------- */
-let deferredPrompt;
-const installBtn=$("installBtn");
-
-const stats=JSON.parse(localStorage.getItem("skynox_install_stats"))||{
-prompted:0,accepted:0,dismissed:0,installed:0};
-
-const save=()=>localStorage.setItem(
-"skynox_install_stats",JSON.stringify(stats));
-
-window.addEventListener("beforeinstallprompt",e=>{
-e.preventDefault();deferredPrompt=e;
-stats.prompted++;save();
-installBtn.style.display="block";
-});
-
-installBtn.onclick=async()=>{
-deferredPrompt.prompt();
-const r=await deferredPrompt.userChoice;
-r.outcome==="accepted"?stats.accepted++:stats.dismissed++;
-save();installBtn.style.display="none";
-};
-
-window.addEventListener("appinstalled",()=>{
-stats.installed++;save();
-installBtn.style.display="none";
-});
 
 /* ---------- BOOT ---------- */
 loadWeather(28.61,77.23,"Delhi, India");

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skynox</title>
+
+<meta name="theme-color" content="#667eea">
+<link rel="manifest" href="manifest.json">
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+
+<style>
+*{box-sizing:border-box;font-family:system-ui,sans-serif;margin:0;padding:0}
+body{min-height:100vh;display:flex;justify-content:center;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2)}
+.app{width:100%;max-width:390px;min-height:100vh;padding:16px;border-radius:22px;background:rgba(255,255,255,.18);backdrop-filter:blur(16px);color:#000;position:relative}
+input,button{width:100%;padding:12px;border-radius:12px;border:none;margin-bottom:10px;font-size:14px}
+button{font-weight:bold;background:rgba(255,255,255,.35)}
+.icon{font-size:48px;text-align:center}
+.big{font-size:22px;font-weight:bold}
+h1,h2,h3,.details,.summary,.lifestyle,#aqiCard,#forecast{margin-bottom:16px}
+.card,.day-card{margin-bottom:12px;padding:12px;border-radius:16px;background:rgba(255,255,255,.25)}
+.banner{display:none;padding:8px;border-radius:10px;font-size:13px;text-align:center;margin-bottom:10px}
+.banner.info{background:#ff7043;color:#000}
+.details,.lifestyle{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.loading{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.4);backdrop-filter:blur(6px);border-radius:22px;font-size:18px;font-weight:bold;z-index:10}
+
+#aqiBadge{padding:4px 10px;border-radius:999px;font-weight:bold}
+.aqi.good{background:#2ecc71;color:#fff}
+.aqi.moderate{background:#f1c40f;color:#000}
+.aqi.poor{background:#e67e22;color:#fff}
+.aqi.severe{background:#e53935;color:#fff}
+.aqi-bar{height:6px;border-radius:6px;background:rgba(255,255,255,.3);margin:6px 0;overflow:hidden}
+.aqi-bar span{display:block;height:100%;width:0;transition:.3s}
+.mask-tip{font-size:13px;opacity:.9}
+
+canvas{border-radius:12px}
+#hourlyChart{height:140px}
+
+@media(prefers-color-scheme:dark){
+ body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364)}
+ .app{background:rgba(0,0,0,.35);color:#fff}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+<h1>🌦 Skynox</h1>
+
+<button id="installBtn" style="display:none">⬇ Install App</button>
+<div class="banner info" id="offlineBanner">Offline — showing cached data</div>
+
+<input id="cityInput" placeholder="Search city">
+<button id="searchBtn">Search</button>
+<button id="locBtn">📍 Use My Location</button>
+
+<div class="loading" id="loading">Loading…</div>
+
+<h2 id="location">--</h2>
+<div class="icon" id="icon">⛅</div>
+
+<p id="temp">--°C</p>
+<p id="feels">Feels like --</p>
+<p id="wind">Wind --</p>
+<p id="humidity">Humidity --</p>
+
+<div class="summary" id="summary">--</div>
+
+<div class="details">
+  <div class="card"><h4>☀ UV</h4><div id="uv" class="big">--</div></div>
+  <div class="card"><h4>🌅 Sun</h4><small id="sun">--</small></div>
+</div>
+
+<div class="card" id="aqiCard">
+<h4>🌫 Air Quality (PM2.5)</h4>
+<div id="aqiBadge" class="aqi good">--</div>
+<div class="aqi-bar"><span id="aqiFill"></span></div>
+<small id="aqiAdvice">--</small>
+<div class="mask-tip" id="maskTip">--</div>
+<span id="aqiTrend"></span>
+<canvas id="aqiChart"></canvas>
+</div>
+
+<h3>🕒 Next 24h Temperature</h3>
+<canvas id="hourlyChart"></canvas>
+
+<footer style="font-size:11px;text-align:center;margin-top:20px">
+© Manik Roy 2025 — Skynox
+</footer>
+</div>
+
+<script>
+const $=i=>document.getElementById(i);
+const icons={0:"☀",1:"🌤",2:"⛅",3:"☁",45:"🌫",61:"🌧",71:"❄",95:"⛈"};
+
+function aqiInfo(pm){
+ if(pm<=30)return["Good","good","Air quality is good",25,"😌 No mask"];
+ if(pm<=60)return["Moderate","moderate","Sensitive users take care",50,"😐 Optional mask"];
+ if(pm<=90)return["Poor","poor","Avoid outdoor activity",75,"😷 Mask recommended"];
+ return["Severe","severe","Stay indoors",100,"😷 N95 advised"];
+}
+
+/* 🔥 HOURLY CHART WITH MIN/MAX LABELS */
+function drawHourly(canvas,data){
+ const c=$(canvas),ctx=c.getContext("2d");
+ c.width=c.offsetWidth;
+ c.height=140;
+ ctx.clearRect(0,0,c.width,c.height);
+
+ const min=Math.min(...data);
+ const max=Math.max(...data);
+ const range=max-min||1;
+ const bw=c.width/24;
+
+ ctx.font="11px system-ui";
+ ctx.textAlign="center";
+
+ data.forEach((v,i)=>{
+   const h=((v-min)/range)*(c.height-30);
+   const x=i*bw;
+   const y=c.height-h;
+
+   ctx.fillStyle="#42a5f5";
+   ctx.fillRect(x+2,y,bw-4,h);
+
+   if(v===min){
+     ctx.fillStyle="#42a5f5";
+     ctx.fillText("↓ "+Math.round(v)+"°",x+bw/2,y-6);
+   }
+   if(v===max){
+     ctx.fillStyle="#e53935";
+     ctx.fillText("↑ "+Math.round(v)+"°",x+bw/2,y-6);
+   }
+ });
+}
+
+function drawAQI(data){
+ const c=$("aqiChart"),ctx=c.getContext("2d");
+ c.width=c.offsetWidth;c.height=120;
+ ctx.clearRect(0,0,c.width,c.height);
+ const m=Math.max(...data);
+ data.forEach((v,i)=>{
+  const h=v/m*c.height;
+  ctx.fillStyle=v<30?"#2ecc71":v<60?"#f1c40f":v<90?"#e67e22":"#e53935";
+  ctx.fillRect(i*(c.width/24),c.height-h,c.width/24-2,h);
+ });
+}
+
+async function loadWeather(lat,lon,name){
+ $("loading").style.display="flex";
+ try{
+ const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,uv_index&daily=sunrise,sunset&timezone=auto`).then(r=>r.json());
+ const a=await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&timezone=auto`).then(r=>r.json());
+
+ $("location").textContent=name;
+ $("temp").textContent=w.current_weather.temperature+"°C";
+ $("feels").textContent="Feels like "+w.current_weather.temperature+"°C";
+ $("wind").textContent="Wind "+w.current_weather.windspeed+" km/h";
+ $("humidity").textContent="Humidity "+w.hourly.relativehumidity_2m[0]+"%";
+ $("icon").textContent=icons[w.current_weather.weathercode]||"⛅";
+ $("uv").textContent=w.hourly.uv_index[0];
+ $("sun").textContent=w.daily.sunrise[0].slice(11,16)+" – "+w.daily.sunset[0].slice(11,16);
+
+ const pm=a.hourly.pm2_5[0];
+ const [l,c,ad,p,mask]=aqiInfo(pm);
+ $("aqiBadge").className="aqi "+c;
+ $("aqiBadge").textContent=pm+" · "+l;
+ $("aqiFill").style.width=p+"%";
+ $("aqiAdvice").textContent=ad;
+ $("maskTip").textContent=mask;
+
+ drawAQI(a.hourly.pm2_5.slice(0,24));
+ drawHourly("hourlyChart",w.hourly.temperature_2m.slice(0,24));
+
+ localStorage.setItem("skynox_cache",JSON.stringify({lat,lon,name,weather:w,air:a}));
+ }catch{
+ const c=JSON.parse(localStorage.getItem("skynox_cache")||"null");
+ if(c){$("offlineBanner").style.display="block";loadWeather(c.lat,c.lon,c.name)}
+ }
+ $("loading").style.display="none";
+}
+
+$("searchBtn").onclick=async()=>{
+ const q=$("cityInput").value.trim();
+ if(!q)return;
+ const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`).then(r=>r.json());
+ if(r.results)loadWeather(r.results[0].latitude,r.results[0].longitude,r.results[0].name);
+};
+
+$("locBtn").onclick=()=>navigator.geolocation.getCurrentPosition(p=>loadWeather(p.coords.latitude,p.coords.longitude,"Current Location"));
+
+window.addEventListener("resize",()=>{
+ const c=JSON.parse(localStorage.getItem("skynox_cache")||"null");
+ if(c)drawHourly("hourlyChart",c.weather.hourly.temperature_2m.slice(0,24));
+});
+
+const c=JSON.parse(localStorage.getItem("skynox_cache")||"null");
+c?loadWeather(c.lat,c.lon,c.name):loadWeather(28.61,77.23,"Delhi, India");
+</script>
+</body>
+</html>

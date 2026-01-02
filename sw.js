@@ -1,28 +1,61 @@
-const CACHE_NAME="skynox-shell-v1";
-const API_CACHE="skynox-api-v1";
+const CACHE_NAME = "skynox-v4";
 
-self.addEventListener("install",e=>{
- e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll([
-  "/","/index.html","/manifest.json","/icons/icon-192.png","/icons/icon-512.png"
- ])));
- self.skipWaiting();
+const APP_SHELL = [
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png"
+];
+
+/* ---------- INSTALL ---------- */
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
+  );
+  self.skipWaiting();
 });
 
-self.addEventListener("activate",e=>{
- e.waitUntil(caches.keys().then(k=>Promise.all(k.map(i=>{
-  if(i!==CACHE_NAME&&i!==API_CACHE)return caches.delete(i)
- }))));
- self.clients.claim();
+/* ---------- ACTIVATE ---------- */
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : null))
+      )
+    )
+  );
+  self.clients.claim();
 });
 
-self.addEventListener("fetch",e=>{
- const u=new URL(e.request.url);
- if(u.hostname.includes("open-meteo")){
-  e.respondWith(caches.open(API_CACHE).then(c=>fetch(e.request)
-   .then(r=>{c.put(e.request,r.clone());return r})
-   .catch(()=>caches.match(e.request))
-  ));
-  return;
- }
- e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));
+/* ---------- FETCH ---------- */
+self.addEventListener("fetch", event => {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  /* API RUNTIME CACHE */
+  if (
+    url.origin.includes("open-meteo.com") ||
+    url.origin.includes("air-quality-api")
+  ) {
+    event.respondWith(networkFirst(req));
+    return;
+  }
+
+  /* APP SHELL */
+  event.respondWith(
+    caches.match(req).then(res => res || fetch(req))
+  );
 });
+
+/* ---------- STRATEGIES ---------- */
+async function networkFirst(req) {
+  try {
+    const fresh = await fetch(req);
+    const cache = await caches.open(CACHE_NAME);
+    cache.put(req, fresh.clone());
+    return fresh;
+  } catch {
+    return caches.match(req);
+  }
+}

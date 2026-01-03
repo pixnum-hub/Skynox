@@ -93,8 +93,7 @@ footer{
   overflow:hidden;
   margin:6px 0;
 }
-#a
-qiFill{
+#aqiFill{
   display:block;
   height:100%;
   width:0%;
@@ -195,7 +194,8 @@ async function loadWeather(lat,lon,name){
   const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,pressure_msl&timezone=auto`).then(r=>r.json());
   const aq=await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&timezone=auto`).then(r=>r.json());
 
-  const idx=w.hourly.time.indexOf(w.current_weather.time);
+  let idx=w.hourly.time.indexOf(w.current_weather.time);
+  if(idx===-1) idx=0;
 
   $("location").textContent=name;
   $("temp").textContent=Math.round(w.current_weather.temperature)+"°C";
@@ -210,8 +210,8 @@ async function loadWeather(lat,lon,name){
   $("pressure").textContent=p+" hPa";
   $("feelsLike").textContent=Math.round(t-(wi*0.7)+(h*0.01))+"°C";
 
-  const pm=aq.hourly.pm2_5[idx];
-  const pmPrev=aq.hourly.pm2_5[idx+1]??pm;
+  const pm=aq.hourly.pm2_5[idx] ?? aq.hourly.pm2_5[0];
+  const pmPrev=aq.hourly.pm2_5[idx+1] ?? pm;
   const aqi=pm25ToAQI(pm);
   const aqiPrev=pm25ToAQI(pmPrev);
   const [lab,cls,col,txt,mask]=aqiInfo(aqi);

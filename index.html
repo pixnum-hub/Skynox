@@ -266,14 +266,19 @@ aqiAdvice.textContent=aqiHealthAdvice(aqi);
 const hourlyAQI=a.hourly.pm2_5.slice(0,24).map(pm25ToAQI);
 aqiHourly.innerHTML=hourlyAQI.map((v,i)=>`<div style="min-width:56px;padding:8px;border-radius:12px;background:${aqiColor(v)};color:#fff;text-align:center;font-size:12px"><div>${aqiIcon(v)}</div><strong>${v}</strong><div>${i}:00</div></div>`).join("");
 
-// AQI notifications & lockscreen
-if("Notification" in window&&Notification.permission==="granted"&&aqi>=150){
-new Notification("⚠️ Poor Air Quality",{body:`AQI is ${aqi} in ${name}. Limit outdoor activity.`,icon:"icon-192.png",silent:false});
-navigator.serviceWorker?.controller?.postMessage({type:"AQI_NOTIFY",aqi,location:name});
+// 7-Day Forecast
+const daily=w.daily;
+if(daily && daily.temperature_2m_max && daily.temperature_2m_min){
+  forecast.innerHTML = daily.temperature_2m_max.map((maxTemp,i) => {
+    const minTemp = daily.temperature_2m_min[i];
+    return `<div class="row">
+              <span>Day ${i+1}</span>
+              <span>${maxTemp}° / ${minTemp}°</span>
+            </div>`;
+  }).join("");
+} else {
+  forecast.innerHTML = "<p class='small'>7-day forecast not available</p>";
 }
-
-// 7-day forecast
-forecast.innerHTML=w.daily.temperature_2m_max.map((_,i)=>`<div class="row"><span>Day ${i+1}</span><span>${w.daily.temperature_2m_max[i]}° / ${w.daily.temperature_2m_min[i]}°</span></div>`).join("");
 }
 
 /* ---------------- EVENTS ---------------- */

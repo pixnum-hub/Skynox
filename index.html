@@ -9,112 +9,43 @@
 <meta name="theme-color" content="#667eea">
 
 <style>
-*{box-sizing:border-box;font-family:system-ui;margin:0;padding:0}
-body{
-  min-height:100svh;
-  display:flex;
-  justify-content:center;
-  padding:12px;
-  background:linear-gradient(135deg,#667eea,#764ba2);
+/* ------------------ Variables ------------------ */
+:root{
+  --bg: linear-gradient(135deg,#667eea,#764ba2);
+  --card: rgba(255,255,255,0.2);
+  --text: #000;
+  --border: rgba(0,0,0,0.1);
 }
 body.dark{
-  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-  color:#fff;
+  --bg: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  --card: rgba(0,0,0,0.35);
+  --text:#fff;
+  --border:rgba(255,255,255,0.2);
 }
-.app{
-  width:100%;
-  max-width:390px;
-  padding:16px;
-  border-radius:22px;
-  background:rgba(255,255,255,.18);
-  backdrop-filter:blur(16px);
-  display:flex;
-  flex-direction:column;
-  gap:16px;
+body.amoled{
+  --bg:#000;
+  --card:#000;
+  --text:#fff;
+  --border:rgba(255,255,255,0.12);
 }
-body.dark .app{background:rgba(0,0,0,.35)}
-
-button,input{
-  width:100%;
-  padding:12px;
-  border-radius:12px;
-  border:none;
-}
-button{font-weight:700}
-
-.card{
-  background:rgba(255,255,255,.25);
-  padding:14px;
-  border-radius:16px;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-body.dark .card{background:rgba(0,0,0,.35)}
-
-.topbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.toggle{
-  width:36px;height:36px;
-  border-radius:50%;
-  border:1px solid rgba(255,255,255,.4);
-  background:transparent;
-  font-size:18px;
-}
-
-.aqi{
-  padding:6px 12px;
-  border-radius:999px;
-  font-weight:700;
-  display:inline-block;
-}
-.aqi.good{background:#2ecc71;color:#fff}
-.aqi.moderate{background:#f1c40f;color:#000}
-.aqi.poor{background:#e67e22;color:#fff}
-.aqi.severe{background:#e53935;color:#fff}
-
-.aqi-bar{
-  height:8px;
-  background:rgba(255,255,255,.3);
-  border-radius:8px;
-  overflow:hidden;
-}
-#aqiFill{height:100%;display:block;width:0%}
-
-.hourly-icons{
-  display:flex;
-  overflow-x:auto;
-  gap:12px;
-}
-.hour{
-  min-width:56px;
-  text-align:center;
-  font-size:12px;
-}
-
-.forecast-list{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-.day-row{
-  display:flex;
-  justify-content:space-between;
-  padding:10px;
-  border-radius:12px;
-  background:rgba(255,255,255,.25);
-}
-body.dark .day-row{background:rgba(0,0,0,.35)}
-
-footer{
-  text-align:center;
-  font-size:12px;
-  opacity:.7;
-}
-canvas{width:100%}
+body{margin:0;padding:0;font-family:system-ui;background:var(--bg);color:var(--text);display:flex;justify-content:center;min-height:100svh;}
+.app{width:100%;max-width:390px;padding:16px;border-radius:22px;background:var(--card);backdrop-filter:blur(16px);display:flex;flex-direction:column;gap:16px;}
+input,button{width:100%;padding:12px;border-radius:12px;border:none;margin-bottom:10px;font-weight:700}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;backdrop-filter:blur(12px);}
+.topbar{display:flex;justify-content:space-between;align-items:center;}
+.theme-toggle{position:fixed;top:14px;right:14px;width:44px;height:44px;border-radius:50%;border:1px solid var(--border);background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.2);}
+.aqi{padding:6px 12px;border-radius:999px;font-weight:700;display:inline-block;}
+.aqi.good{background:#2ecc71;color:#fff;}
+.aqi.moderate{background:#f1c40f;color:#000;}
+.aqi.poor{background:#e67e22;color:#fff;}
+.aqi.severe{background:#e53935;color:#fff;}
+.aqi-bar{height:8px;background:rgba(255,255,255,.3);border-radius:8px;overflow:hidden;}
+.hourly-icons{display:flex;overflow-x:auto;gap:12px;padding-top:6px;}
+.hour{min-width:56px;text-align:center;font-size:12px;}
+.forecast-list{display:flex;flex-direction:column;gap:10px;}
+.day-row{display:flex;justify-content:space-between;padding:10px;border-radius:12px;background:var(--card);}
+canvas{width:100%;height:120px;}
+footer{text-align:center;font-size:12px;opacity:.7;margin-top:16px;}
 </style>
 </head>
 
@@ -123,9 +54,14 @@ canvas{width:100%}
 
 <div class="topbar">
   <h2>🌦 Skynox</h2>
-  <button class="toggle" id="themeBtn">🌙</button>
 </div>
 
+<!-- Dark Mode Toggle -->
+<button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+  <span id="themeIcon">🌙</span>
+</button>
+
+<!-- Offline last known -->
 <div class="card" id="offlineCard" style="display:none">
   <b>📡 Offline mode</b>
   <small>Showing last known location</small>
@@ -145,9 +81,7 @@ canvas{width:100%}
   <p>🕒 <span id="localTime">--</span></p>
   <p>🤒 Feels like: <b id="feelsLike">--°C</b></p>
   <p>💧 Humidity: <b id="humidity">--%</b></p>
-  <p>💨 Wind: <b id="wind">-- km/h</b>
-     <span id="windCompass" style="display:inline-block">⬆️</span>
-  </p>
+  <p>💨 Wind: <b id="wind">-- km/h</b> <span id="windCompass">⬆️</span></p>
   <p>📈 Pressure: <b id="pressure">-- hPa</b></p>
   <p>🌅 Sunrise: <b id="sunrise">--</b></p>
   <p>🌇 Sunset: <b id="sunset">--</b></p>
@@ -186,19 +120,29 @@ canvas{width:100%}
 <script>
 const $=id=>document.getElementById(id);
 
-/* ---------- Theme ---------- */
-themeBtn.onclick=()=>{
+/* ----------------- Dark / AMOLED Toggle ----------------- */
+const toggle=document.getElementById("themeToggle");
+const icon=document.getElementById("themeIcon");
+const saved=localStorage.getItem("theme");
+if(saved){document.body.classList.add(saved);icon.textContent=saved==="dark"?"☀️":saved==="amoled"?"🖤":"🌙";}
+toggle.onclick=()=>{
+  if(document.body.classList.contains("amoled")) return;
   document.body.classList.toggle("dark");
-  localStorage.theme=document.body.classList.contains("dark");
+  const mode=document.body.classList.contains("dark")?"dark":"light";
+  icon.textContent=mode==="dark"?"☀️":"🌙";
+  localStorage.setItem("theme",mode);
 };
-if(localStorage.theme==="true")document.body.classList.add("dark");
+let pressTimer=null;
+toggle.addEventListener("touchstart",()=>{pressTimer=setTimeout(enableAMOLED,600);});
+toggle.addEventListener("touchend",()=>clearTimeout(pressTimer));
+toggle.addEventListener("mousedown",()=>{pressTimer=setTimeout(enableAMOLED,600);});
+toggle.addEventListener("mouseup",()=>clearTimeout(pressTimer));
+function enableAMOLED(){document.body.classList.remove("dark");document.body.classList.add("amoled");icon.textContent="🖤";localStorage.setItem("theme","amoled");}
 
-/* ---------- AQI helpers ---------- */
+/* ----------------- AQI Helpers ----------------- */
 function pm25ToAQI(pm){
   const bp=[[0,12,0,50],[12.1,35.4,51,100],[35.5,55.4,101,150],[55.5,150.4,151,200],[150.5,250.4,201,300],[250.5,500,301,500]];
-  for(const[bL,bH,aL,aH] of bp)
-    if(pm>=bL&&pm<=bH)
-      return Math.round(((aH-aL)/(bH-bL))*(pm-bL)+aL);
+  for(const[bL,bH,aL,aH] of bp) if(pm>=bL&&pm<=bH)return Math.round(((aH-aL)/(bH-bL))*(pm-bL)+aL);
   return 500;
 }
 function aqiInfo(a){
@@ -207,135 +151,68 @@ function aqiInfo(a){
   if(a<=150)return["Unhealthy","poor","#e67e22","Reduce outdoor activity","😷 Mask advised"];
   return["Severe","severe","#e53935","Avoid outdoors","😷 N95 required"];
 }
-
-/* ---------- AQI chart ---------- */
 function drawAQI(data){
-  const c=aqiChart.getContext("2d");
-  aqiChart.width=aqiChart.offsetWidth;
-  c.clearRect(0,0,aqiChart.width,aqiChart.height);
-  const max=Math.max(...data);
-  data.forEach((v,i)=>{
-    const h=(v/max)*aqiChart.height;
-    c.fillStyle="#e53935";
-    c.fillRect(i*(aqiChart.width/data.length),
-      aqiChart.height-h,
-      aqiChart.width/data.length-2,h);
-  });
+  const c=aqiChart.getContext("2d");aqiChart.width=aqiChart.offsetWidth;c.clearRect(0,0,aqiChart.width,aqiChart.height);const max=Math.max(...data);data.forEach((v,i)=>{const h=(v/max)*aqiChart.height;c.fillStyle="#e53935";c.fillRect(i*(aqiChart.width/data.length),aqiChart.height-h,aqiChart.width/data.length-2,h);});
 }
 
-/* ---------- Weather Loader ---------- */
+/* ----------------- Load Weather ----------------- */
 let watchId=null;
-
 async function loadWeather(lat,lon,name){
 try{
-const w=await fetch(
-`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}
-&current_weather=true
-&hourly=temperature_2m,apparent_temperature,relativehumidity_2m,windspeed_10m,winddirection_10m,pressure_msl,weathercode
-&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min
-&timezone=auto`
-).then(r=>r.json());
-
-const aq=await fetch(
-`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&timezone=auto`
-).then(r=>r.json());
-
+const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,apparent_temperature,relativehumidity_2m,windspeed_10m,winddirection_10m,pressure_msl,weathercode&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min&timezone=auto`).then(r=>r.json());
+const aq=await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&timezone=auto`).then(r=>r.json());
 localStorage.setItem("lastLocation",JSON.stringify({lat,lon,name}));
-
 offlineCard.style.display="none";
+$("location").textContent=name;$("temp").textContent=Math.round(w.current_weather.temperature)+"°C";
+const idx=w.hourly.time.indexOf(w.current_weather.time)>=0?w.hourly.time.indexOf(w.current_weather.time):0;
+$("localTime").textContent=new Date(w.current_weather.time).toLocaleString();
+$("feelsLike").textContent=w.hourly.apparent_temperature[idx]+"°C";
+$("humidity").textContent=w.hourly.relativehumidity_2m[idx]+"%";
+$("wind").textContent=w.hourly.windspeed_10m[idx];
+$("windCompass").style.transform=`rotate(${w.hourly.winddirection_10m[idx]}deg)`;
+$("pressure").textContent=w.hourly.pressure_msl[idx];
+$("sunrise").textContent=new Date(w.daily.sunrise[0]).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+$("sunset").textContent=new Date(w.daily.sunset[0]).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
 
-$("location").textContent=name;
-$("temp").textContent=Math.round(w.current_weather.temperature)+"°C";
-
-const idx=w.hourly.time.indexOf(w.current_weather.time)>=0
-  ? w.hourly.time.indexOf(w.current_weather.time)
-  : 0;
-
-/* Current conditions */
-localTime.textContent=new Date(w.current_weather.time).toLocaleString();
-feelsLike.textContent=w.hourly.apparent_temperature[idx]+"°C";
-humidity.textContent=w.hourly.relativehumidity_2m[idx]+"%";
-wind.textContent=w.hourly.windspeed_10m[idx];
-pressure.textContent=w.hourly.pressure_msl[idx];
-windCompass.style.transform=`rotate(${w.hourly.winddirection_10m[idx]}deg)`;
-
-sunrise.textContent=new Date(w.daily.sunrise[0]).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-sunset.textContent=new Date(w.daily.sunset[0]).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-
-/* 24h */
+/* 24h min/max */
 const t24=w.hourly.temperature_2m.slice(idx,idx+24);
-min24.textContent=Math.min(...t24)+"°C";
-max24.textContent=Math.max(...t24)+"°C";
+$("min24").textContent=Math.min(...t24)+"°C";
+$("max24").textContent=Math.max(...t24)+"°C";
 
 /* Hourly icons */
-hourlyIcons.innerHTML="";
 const icons={0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",61:"🌧️",71:"❄️",80:"🌧️",95:"⛈️"};
+$("hourlyIcons").innerHTML="";
 for(let i=idx;i<idx+24;i++){
-  hourlyIcons.innerHTML+=`
-  <div class="hour">
-    <div>${new Date(w.hourly.time[i]).getHours()}:00</div>
-    <div>${icons[w.hourly.weathercode[i]]||"🌡️"}</div>
-    <div>${w.hourly.temperature_2m[i]}°</div>
-  </div>`;
+  $("hourlyIcons").innerHTML+=`<div class="hour"><div>${new Date(w.hourly.time[i]).getHours()}:00</div><div>${icons[w.hourly.weathercode[i]]||"🌡️"}</div><div>${w.hourly.temperature_2m[i]}°</div></div>`;
 }
 
-/* 7-day */
-dailyForecast.innerHTML="";
-w.daily.time.forEach((d,i)=>{
-  dailyForecast.innerHTML+=`
-  <div class="day-row">
-    <span>${new Date(d).toLocaleDateString(undefined,{weekday:"short"})}</span>
-    <span>🌞 ${w.daily.temperature_2m_max[i]}°</span>
-    <span>🌙 ${w.daily.temperature_2m_min[i]}°</span>
-  </div>`;
-});
+/* 7-day forecast */
+$("dailyForecast").innerHTML="";
+w.daily.time.forEach((d,i)=>{$("dailyForecast").innerHTML+=`<div class="day-row"><span>${new Date(d).toLocaleDateString(undefined,{weekday:"short"})}</span><span>🌞 ${w.daily.temperature_2m_max[i]}°</span><span>🌙 ${w.daily.temperature_2m_min[i]}°</span></div>`;});
 
 /* AQI */
 const pm=aq.hourly.pm2_5[idx]??aq.hourly.pm2_5[0];
 const pmPrev=aq.hourly.pm2_5[idx+1]??pm;
 const aqi=pm25ToAQI(pm);
 const [lab,cls,col,txt,mask]=aqiInfo(aqi);
-
-aqiBadge.className="aqi "+cls;
-aqiBadge.textContent=`AQI ${aqi} · ${lab}`;
-aqiPM.textContent=`PM2.5: ${pm}`;
-aqiText.textContent=txt;
-maskTip.textContent=mask;
-aqiTrend.textContent=aqi>pmPrev?"↑ Worsening":aqi<pmPrev?"↓ Improving":"→ Stable";
-aqiFill.style.width=Math.min(aqi/5,100)+"%";
-aqiFill.style.background=col;
-
+$("aqiBadge").className="aqi "+cls;$("aqiBadge").textContent=`AQI ${aqi} · ${lab}`;
+$("aqiPM").textContent=`PM2.5: ${pm}`;$("aqiText").textContent=txt;$("maskTip").textContent=mask;
+$("aqiTrend").textContent=aqi>pmPrev?"↑ Worsening":aqi<pmPrev?"↓ Improving":"→ Stable";
+$("aqiFill").style.width=Math.min(aqi/5,100)+"%";$("aqiFill").style.background=col;
 drawAQI(aq.hourly.pm2_5.slice(idx,idx+24).map(pm25ToAQI));
-
 }catch{
 const last=JSON.parse(localStorage.getItem("lastLocation")||"null");
-if(last){
-  offlineCard.style.display="block";
-  loadWeather(last.lat,last.lon,last.name);
-}
+if(last){offlineCard.style.display="block";loadWeather(last.lat,last.lon,last.name);}
 }
 }
 
-/* Controls */
-searchBtn.onclick=async()=>{
-  const q=cityInput.value.trim();
-  if(!q)return;
-  const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`).then(r=>r.json());
-  if(r.results)loadWeather(r.results[0].latitude,r.results[0].longitude,r.results[0].name);
-};
+/* ----------------- Controls ----------------- */
+$("searchBtn").onclick=async()=>{const q=$("cityInput").value.trim();if(!q)return;const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`).then(r=>r.json());if(r.results)loadWeather(r.results[0].latitude,r.results[0].longitude,r.results[0].name);};
+$("locBtn").onclick=()=>{navigator.geolocation.getCurrentPosition(p=>{loadWeather(p.coords.latitude,p.coords.longitude,"Current Location");if(!watchId){watchId=navigator.geolocation.watchPosition(p2=>{loadWeather(p2.coords.latitude,p2.coords.longitude,"Current Location");});}});};
 
-locBtn.onclick=()=>{
-  navigator.geolocation.getCurrentPosition(p=>{
-    loadWeather(p.coords.latitude,p.coords.longitude,"Current Location");
-    if(!watchId){
-      watchId=navigator.geolocation.watchPosition(p2=>{
-        loadWeather(p2.coords.latitude,p2.coords.longitude,"Current Location");
-      });
-    }
-  });
-};
-
-loadWeather(28.61,77.23,"Delhi, India");
+/* Initial load */
+const last=JSON.parse(localStorage.getItem("lastLocation")||"null");
+last?loadWeather(last.lat,last.lon,last.name):loadWeather(28.61,77.23,"Delhi, India");
 </script>
 </body>
 </html>

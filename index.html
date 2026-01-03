@@ -176,17 +176,39 @@ async function loadWeather(lat,lon,name){
 }
 
 // --------- Install ---------
+// ---------- Install Button Logic ----------
+const installBtn = $("installBtn");
 let deferredPrompt;
-window.addEventListener("beforeinstallprompt", e=>{
-  e.preventDefault(); deferredPrompt=e; $("installBtn").style.display="block";
+
+// Mobile / desktop PWA detection
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'block';
 });
-$("installBtn").onclick=async()=>{
-  if(!deferredPrompt) return;
-  await deferredPrompt.prompt();
-  deferredPrompt=null;
-  $("installBtn").style.display="none";
+
+// Always show button on desktop if not touchscreen
+if(!window.matchMedia('(pointer: coarse)').matches){
+  installBtn.style.display = 'block';
+}
+
+installBtn.onclick = async () => {
+  if(deferredPrompt){
+    // Mobile / supported desktop
+    await deferredPrompt.prompt();
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+  } else {
+    // Fallback for desktop browsers that don't fire beforeinstallprompt
+    alert("To install Skynox PWA on desktop: click the browser menu → 'Install Skynox'");
+  }
 };
-window.addEventListener("appinstalled",()=>console.log("Skynox installed"));
+
+// Optional: log PWA installation
+window.addEventListener("appinstalled", () => {
+  console.log("Skynox installed");
+  installBtn.style.display = 'none';
+});
 
 // --------- SW update ---------
 navigator.serviceWorker?.addEventListener("controllerchange",()=>{

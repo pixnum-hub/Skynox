@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Skynox</title>
 
+<!-- Viewport & Safe Fullscreen Fix -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skynox</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#667eea">
 
@@ -15,36 +16,43 @@ if ("serviceWorker" in navigator) {
 </script>
 
 <style>
-*{box-sizing:border-box;font-family:system-ui;margin:0;padding:0}
-body{min-height:100vh;display:flex;justify-content:center;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2)}
-.app{width:100%;max-width:390px;min-height:100vh;padding:16px;border-radius:22px;background:rgba(255,255,255,.18);backdrop-filter:blur(16px)}
-input,button{width:100%;padding:12px;border-radius:12px;border:none;margin-bottom:10px}
-button{font-weight:bold;background:rgba(255,255,255,.35)}
-.card{background:rgba(255,255,255,.25);padding:12px;border-radius:16px;margin-bottom:12px}
-canvas{width:100%;height:120px;border-radius:12px}
+/* ---------- Global Fixes ---------- */
+* { box-sizing: border-box; font-family: system-ui; margin: 0; padding: 0; }
+html, body { min-height: 100svh; margin: 0; padding: 0; overscroll-behavior-y: auto; }
+body { display: flex; justify-content: center; padding: 12px; background: linear-gradient(135deg,#667eea,#764ba2); 
+       padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 
-.aqi{padding:6px 10px;border-radius:999px;font-weight:bold;display:inline-block}
-.good{background:#2ecc71;color:#fff}
-.moderate{background:#f1c40f;color:#000}
-.poor{background:#e67e22;color:#fff}
-.severe{background:#e53935;color:#fff}
+.app { width: 100%; max-width: 390px; min-height: 100svh; padding: 16px; border-radius: 22px; 
+       background: rgba(255,255,255,.18); backdrop-filter: blur(16px); position: relative; }
 
-.banner{padding:8px;border-radius:10px;font-size:13px;text-align:center;margin-bottom:10px;display:none}
-.banner.alert{color:#fff}
+input, button { width: 100%; padding: 12px; border-radius: 12px; border: none; margin-bottom: 10px; }
+button { font-weight: bold; background: rgba(255,255,255,.35); }
 
-.hour-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.2)}
-.marker{font-size:11px;font-weight:bold}
-.min{color:#42a5f5}
-.max{color:#e53935}
-.expand{max-height:0;overflow:hidden;transition:max-height .3s ease}
-.expand.open{max-height:700px}
+.card { background: rgba(255,255,255,.25); padding: 12px; border-radius: 16px; margin-bottom: 12px; }
+canvas { width: 100%; height: 120px; border-radius: 12px; }
 
-#installBtn{display:none;background:#000;color:#fff}
-#updateBanner{background:#000;color:#fff}
+.aqi { padding: 6px 10px; border-radius: 999px; font-weight: bold; display: inline-block; }
+.good { background: #2ecc71; color: #fff; }
+.moderate { background: #f1c40f; color: #000; }
+.poor { background: #e67e22; color: #fff; }
+.severe { background: #e53935; color: #fff; }
+
+.banner { padding: 8px; border-radius: 10px; font-size: 13px; text-align: center; margin-bottom: 10px; display: none; }
+.banner.alert { color: #fff; }
+
+.hour-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.2); }
+.marker { font-size: 11px; font-weight: bold; }
+.min { color: #42a5f5; }
+.max { color: #e53935; }
+.expand { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+.expand.open { max-height: 700px; }
+
+#installBtn { display: none; background: #000; color: #fff; }
+#updateBanner { background: #000; color: #fff; }
 
 @media(prefers-color-scheme:dark){
-body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364)}
-.app{background:rgba(0,0,0,.35);color:#fff}
+  body { background: linear-gradient(135deg,#0f2027,#203a43,#2c5364); }
+  .app { background: rgba(0,0,0,.35); color: #fff; }
 }
 </style>
 </head>
@@ -92,106 +100,105 @@ body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364)}
 </div>
 
 <script>
-const $=id=>document.getElementById(id);
+// --------- Utility ---------
+const $ = id => document.getElementById(id);
 
-/* PM2.5 → AQI (US EPA) */
+// PM2.5 → AQI
 function pm25ToAQI(pm){
-const bp=[[0,12,0,50],[12.1,35.4,51,100],[35.5,55.4,101,150],[55.5,150.4,151,200],[150.5,250.4,201,300],[250.5,500,301,500]];
-for(const[bL,bH,aL,aH]of bp)
-if(pm>=bL&&pm<=bH)return Math.round(((aH-aL)/(bH-bL))*(pm-bL)+aL);
-return 500;
+  const bp=[[0,12,0,50],[12.1,35.4,51,100],[35.5,55.4,101,150],[55.5,150.4,151,200],[150.5,250.4,201,300],[250.5,500,301,500]];
+  for(const [bL,bH,aL,aH] of bp) if(pm>=bL && pm<=bH) return Math.round(((aH-aL)/(bH-bL))*(pm-bL)+aL);
+  return 500;
 }
+
 function aqiInfo(a){
-if(a<=50)return["Good","good","#2ecc71","Air quality is good"];
-if(a<=100)return["Moderate","moderate","#f1c40f","Sensitive people should be cautious"];
-if(a<=150)return["Unhealthy (Sensitive)","poor","#e67e22","Reduce outdoor activity"];
-if(a<=200)return["Unhealthy","severe","#e53935","Avoid outdoor activity"];
-if(a<=300)return["Very Unhealthy","severe","#8e24aa","Stay indoors"];
-return["Hazardous","severe","#6d0019","Health emergency"];
+  if(a<=50) return ["Good","good","#2ecc71","Air quality is good"];
+  if(a<=100) return ["Moderate","moderate","#f1c40f","Sensitive people should be cautious"];
+  if(a<=150) return ["Unhealthy (Sensitive)","poor","#e67e22","Reduce outdoor activity"];
+  if(a<=200) return ["Unhealthy","severe","#e53935","Avoid outdoor activity"];
+  if(a<=300) return ["Very Unhealthy","severe","#8e24aa","Stay indoors"];
+  return ["Hazardous","severe","#6d0019","Health emergency"];
 }
 
 function drawChart(id,arr,color){
-const c=$(id),ctx=c.getContext("2d");
-c.width=c.offsetWidth;c.height=120;
-ctx.clearRect(0,0,c.width,c.height);
-const min=Math.min(...arr),max=Math.max(...arr),r=max-min||1;
-arr.forEach((v,i)=>{
-const h=((v-min)/r)*c.height;
-ctx.fillStyle=color;
-ctx.fillRect(i*(c.width/arr.length),c.height-h,c.width/arr.length-2,h);
-});
+  const c=$(id),ctx=c.getContext("2d");
+  c.width=c.offsetWidth; c.height=120; ctx.clearRect(0,0,c.width,c.height);
+  const min=Math.min(...arr), max=Math.max(...arr), r=max-min||1;
+  arr.forEach((v,i)=>{
+    const h=((v-min)/r)*c.height;
+    ctx.fillStyle=color;
+    ctx.fillRect(i*(c.width/arr.length),c.height-h,c.width/arr.length-2,h);
+  });
 }
 
 async function loadWeather(lat,lon,name){
-try{
-const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m&daily=temperature_2m_min,temperature_2m_max&timezone=auto`).then(r=>r.json());
-const a=await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&timezone=auto`).then(r=>r.json());
+  try {
+    const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m&daily=temperature_2m_min,temperature_2m_max&timezone=auto`).then(r=>r.json());
+    const a = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&timezone=auto`).then(r=>r.json());
 
-localStorage.setItem("skynox_cache",JSON.stringify({lat,lon,name,w,a}));
+    localStorage.setItem("skynox_cache", JSON.stringify({lat,lon,name,w,a}));
 
-$("location").textContent=name;
-$("temp").textContent=Math.round(w.current_weather.temperature)+"°C";
+    $("location").textContent=name;
+    $("temp").textContent=Math.round(w.current_weather.temperature)+"°C";
 
-const t24=w.hourly.temperature_2m.slice(0,24);
-$("hourlyMinMax").textContent=`Min ${Math.min(...t24)}° / Max ${Math.max(...t24)}°`;
-drawChart("hourlyChart",t24,"#42a5f5");
+    const t24=w.hourly.temperature_2m.slice(0,24);
+    $("hourlyMinMax").textContent=`Min ${Math.min(...t24)}° / Max ${Math.max(...t24)}°`;
+    drawChart("hourlyChart",t24,"#42a5f5");
 
-const ex=$("hourlyExpand");ex.innerHTML="";
-const minT=Math.min(...t24),maxT=Math.max(...t24);
-for(let i=0;i<24;i++){
-ex.innerHTML+=`<div class="hour-row"><span>${i}:00</span><span>${t24[i]}° ${t24[i]===minT?'<span class="marker min">MIN</span>':''}${t24[i]===maxT?'<span class="marker max">MAX</span>':''}</span><span>${w.hourly.relativehumidity_2m[i]}%</span><span>${w.hourly.windspeed_10m[i]} km/h</span></div>`;
+    const ex=$("hourlyExpand"); ex.innerHTML="";
+    const minT=Math.min(...t24), maxT=Math.max(...t24);
+    for(let i=0;i<24;i++){
+      ex.innerHTML+=`<div class="hour-row"><span>${i}:00</span><span>${t24[i]}° ${t24[i]===minT?'<span class="marker min">MIN</span>':''}${t24[i]===maxT?'<span class="marker max">MAX</span>':''}</span><span>${w.hourly.relativehumidity_2m[i]}%</span><span>${w.hourly.windspeed_10m[i]} km/h</span></div>`;
+    }
+
+    const pm=a.hourly.pm2_5[0], pmPrev=a.hourly.pm2_5[1]??pm;
+    const aqi=pm25ToAQI(pm), aqiPrev=pm25ToAQI(pmPrev);
+    const [lab,cls,col,txt] = aqiInfo(aqi);
+
+    $("aqiBadge").className="aqi "+cls;
+    $("aqiBadge").textContent=`AQI ${aqi} · ${lab}`;
+    $("aqiPM").textContent=`PM2.5: ${pm} µg/m³`;
+    $("aqiText").textContent=txt;
+    $("aqiFill").style.width=Math.min(aqi/5,100)+"%";
+    $("aqiFill").style.background=col;
+    $("maskTip").textContent=aqi<=50?"😌 No mask":aqi<=100?"😐 Sensitive mask":aqi<=150?"😷 Recommended":"😷 N95 advised";
+    $("aqiTrend").textContent=aqi>aqiPrev?"↑ Worsening":aqi<aqiPrev?"↓ Improving":"→ Stable";
+
+    const ab=$("aqiAlert");
+    ab.style.display="block"; ab.style.background=col; ab.textContent=txt;
+
+    drawChart("aqiChart",a.hourly.pm2_5.slice(0,24).map(pm25ToAQI),col);
+
+    $("forecast").innerHTML=w.daily.temperature_2m_max.map((_,i)=>`<div class="card">Day ${i+1}: ${w.daily.temperature_2m_max[i]}° / ${w.daily.temperature_2m_min[i]}°</div>`).join("");
+  } catch {
+    const c=JSON.parse(localStorage.getItem("skynox_cache")||"null");
+    if(c) loadWeather(c.lat,c.lon,c.name);
+  }
 }
 
-const pm=a.hourly.pm2_5[0],pmPrev=a.hourly.pm2_5[1]??pm;
-const aqi=pm25ToAQI(pm),aqiPrev=pm25ToAQI(pmPrev);
-const[lab,cls,col,txt]=aqiInfo(aqi);
-
-$("aqiBadge").className="aqi "+cls;
-$("aqiBadge").textContent=`AQI ${aqi} · ${lab}`;
-$("aqiPM").textContent=`PM2.5: ${pm} µg/m³`;
-$("aqiText").textContent=txt;
-$("aqiFill").style.width=Math.min(aqi/5,100)+"%";
-$("aqiFill").style.background=col;
-$("maskTip").textContent=aqi<=50?"😌 No mask":aqi<=100?"😐 Sensitive mask":aqi<=150?"😷 Recommended":"😷 N95 advised";
-$("aqiTrend").textContent=aqi>aqiPrev?"↑ Worsening":aqi<aqiPrev?"↓ Improving":"→ Stable";
-
-const ab=$("aqiAlert");
-ab.style.display="block";
-ab.style.background=col;
-ab.textContent=txt;
-
-drawChart("aqiChart",a.hourly.pm2_5.slice(0,24).map(pm25ToAQI),col);
-
-$("forecast").innerHTML=w.daily.temperature_2m_max.map((_,i)=>`<div class="card">Day ${i+1}: ${w.daily.temperature_2m_max[i]}° / ${w.daily.temperature_2m_min[i]}°</div>`).join("");
-}catch{
-const c=JSON.parse(localStorage.getItem("skynox_cache")||"null");
-if(c)loadWeather(c.lat,c.lon,c.name);
-}
-}
-
-/* Install */
+// --------- Install ---------
 let deferredPrompt;
-window.addEventListener("beforeinstallprompt",e=>{
-e.preventDefault();deferredPrompt=e;$("installBtn").style.display="block";
+window.addEventListener("beforeinstallprompt", e=>{
+  e.preventDefault(); deferredPrompt=e; $("installBtn").style.display="block";
 });
 $("installBtn").onclick=async()=>{
-if(!deferredPrompt)return;
-await deferredPrompt.prompt();
-deferredPrompt=null;
-$("installBtn").style.display="none";
+  if(!deferredPrompt) return;
+  await deferredPrompt.prompt();
+  deferredPrompt=null;
+  $("installBtn").style.display="none";
 };
 window.addEventListener("appinstalled",()=>console.log("Skynox installed"));
 
-/* SW update */
+// --------- SW update ---------
 navigator.serviceWorker?.addEventListener("controllerchange",()=>{
-$("updateBanner").style.display="block";
-$("updateBanner").onclick=()=>location.reload();
+  $("updateBanner").style.display="block";
+  $("updateBanner").onclick=()=>location.reload();
 });
 
+// --------- UI Actions ---------
 $("searchBtn").onclick=async()=>{
-const q=$("cityInput").value.trim();if(!q)return;
-const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`).then(r=>r.json());
-if(r.results)loadWeather(r.results[0].latitude,r.results[0].longitude,r.results[0].name);
+  const q=$("cityInput").value.trim(); if(!q) return;
+  const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`).then(r=>r.json());
+  if(r.results) loadWeather(r.results[0].latitude,r.results[0].longitude,r.results[0].name);
 };
 $("locBtn").onclick=()=>navigator.geolocation.getCurrentPosition(p=>loadWeather(p.coords.latitude,p.coords.longitude,"Current Location"));
 $("hourlyCard").onclick=()=>$("hourlyExpand").classList.toggle("open");

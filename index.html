@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Skynox</title>
-<meta name="theme-color" content="#667eea">
+
 <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#667eea">
 
 <script>
 if ("serviceWorker" in navigator) {
@@ -14,36 +15,36 @@ if ("serviceWorker" in navigator) {
 </script>
 
 <style>
-*{box-sizing:border-box;font-family:system-ui,sans-serif;margin:0;padding:0;}
-body{min-height:100vh;display:flex;justify-content:center;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);}
-.app{width:100%;max-width:390px;min-height:100vh;padding:16px;border-radius:22px;background:rgba(255,255,255,.18);backdrop-filter:blur(16px);color:#000;}
+*{box-sizing:border-box;font-family:system-ui;margin:0;padding:0}
+body{min-height:100vh;display:flex;justify-content:center;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2)}
+.app{width:100%;max-width:390px;min-height:100vh;padding:16px;border-radius:22px;background:rgba(255,255,255,.18);backdrop-filter:blur(16px)}
+input,button{width:100%;padding:12px;border-radius:12px;border:none;margin-bottom:10px}
+button{font-weight:bold;background:rgba(255,255,255,.35)}
+.card{background:rgba(255,255,255,.25);padding:12px;border-radius:16px;margin-bottom:12px}
+canvas{width:100%;height:120px;border-radius:12px}
 
-input,button{width:100%;padding:12px;border-radius:12px;border:none;margin-bottom:10px;}
-button{font-weight:bold;background:rgba(255,255,255,.35);}
-#installBtn{display:none;background:#000;color:#fff;}
+.aqi{padding:6px 10px;border-radius:999px;font-weight:bold;display:inline-block}
+.good{background:#2ecc71;color:#fff}
+.moderate{background:#f1c40f;color:#000}
+.poor{background:#e67e22;color:#fff}
+.severe{background:#e53935;color:#fff}
 
-.card{background:rgba(255,255,255,.25);padding:12px;border-radius:16px;margin-bottom:12px;}
-canvas{width:100%;height:120px;border-radius:12px;}
+.banner{padding:8px;border-radius:10px;font-size:13px;text-align:center;margin-bottom:10px;display:none}
+.banner.alert{color:#fff}
 
-.aqi{padding:6px 10px;border-radius:999px;font-weight:bold;display:inline-block;}
-.good{background:#2ecc71;color:#fff;}
-.moderate{background:#f1c40f;color:#000;}
-.poor{background:#e67e22;color:#fff;}
-.severe{background:#e53935;color:#fff;}
+.hour-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.2)}
+.marker{font-size:11px;font-weight:bold}
+.min{color:#42a5f5}
+.max{color:#e53935}
+.expand{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.expand.open{max-height:700px}
 
-.expand{max-height:0;overflow:hidden;transition:max-height .3s ease;}
-.expand.open{max-height:700px;}
-
-.hour-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.2);}
-.marker{font-weight:bold;font-size:11px;}
-.min{color:#42a5f5;}
-.max{color:#e53935;}
-
-.banner.alert{display:none;padding:8px;border-radius:10px;font-size:13px;text-align:center;margin-bottom:10px;color:#fff;}
+#installBtn{display:none;background:#000;color:#fff}
+#updateBanner{background:#000;color:#fff}
 
 @media(prefers-color-scheme:dark){
-body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);}
-.app{background:rgba(0,0,0,.35);color:#fff;}
+body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364)}
+.app{background:rgba(0,0,0,.35);color:#fff}
 }
 </style>
 </head>
@@ -53,6 +54,8 @@ body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);}
 
 <h1>🌦 Skynox</h1>
 
+<div class="banner" id="updateBanner">New update available — Tap to refresh</div>
+
 <input id="cityInput" placeholder="Search city">
 <button id="searchBtn">Search</button>
 <button id="locBtn">📍 Use My Location</button>
@@ -61,22 +64,21 @@ body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);}
 <h2 id="location">--</h2>
 <p id="temp">--°</p>
 
-<!-- AQI HEALTH ALERT -->
 <div class="banner alert" id="aqiAlert"></div>
 
-<!-- AQI CARD -->
 <div class="card">
 <h4>🌫 Air Quality</h4>
 <div id="aqiBadge" class="aqi">--</div>
 <p id="aqiPM">--</p>
 <p id="aqiTrend">--</p>
-<p id="aqiText" style="font-size:13px;margin-top:4px">--</p>
-<div class="aqi-bar"><span id="aqiFill"></span></div>
-<div id="maskTip" class="mask-tip">--</div>
+<p id="aqiText">--</p>
+<div style="height:6px;background:rgba(255,255,255,.3);border-radius:6px;overflow:hidden">
+  <span id="aqiFill" style="display:block;height:100%;width:0%"></span>
+</div>
+<div id="maskTip" style="margin-top:6px;font-size:13px"></div>
 <canvas id="aqiChart"></canvas>
 </div>
 
-<!-- NEXT 24H -->
 <div class="card" id="hourlyCard">
 <h4>Next 24h Temperature</h4>
 <small id="hourlyMinMax">--</small>
@@ -84,124 +86,118 @@ body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);}
 <div id="hourlyExpand" class="expand"></div>
 </div>
 
-<!-- 7-DAY FORECAST -->
 <h3>📅 7-Day Forecast</h3>
 <div id="forecast"></div>
 
 </div>
 
 <script>
-// ===== HELPERS =====
-const $ = id => document.getElementById(id);
+const $=id=>document.getElementById(id);
 
-// PM2.5 → AQI conversion
+/* PM2.5 → AQI (US EPA) */
 function pm25ToAQI(pm){
-  const bp=[[0,12,0,50],[12.1,35.4,51,100],[35.5,55.4,101,150],[55.5,150.4,151,200],[150.5,250.4,201,300],[250.5,500,301,500]];
-  for(const [cL,cH,aL,aH] of bp){
-    if(pm>=cL && pm<=cH) return Math.round(((aH-aL)/(cH-cL))*(pm-cL)+aL);
-  }
-  return 500;
+const bp=[[0,12,0,50],[12.1,35.4,51,100],[35.5,55.4,101,150],[55.5,150.4,151,200],[150.5,250.4,201,300],[250.5,500,301,500]];
+for(const[bL,bH,aL,aH]of bp)
+if(pm>=bL&&pm<=bH)return Math.round(((aH-aL)/(bH-bL))*(pm-bL)+aL);
+return 500;
 }
-function aqiInfo(aqi){
-  if(aqi<=50) return ["Good","good","#2ecc71","Air quality is good"];
-  if(aqi<=100) return ["Moderate","moderate","#f1c40f","Sensitive people should take caution"];
-  if(aqi<=150) return ["Unhealthy (Sensitive)","poor","#e67e22","Reduce outdoor activity"];
-  if(aqi<=200) return ["Unhealthy","severe","#e53935","Avoid outdoor activity"];
-  if(aqi<=300) return ["Very Unhealthy","severe","#8e24aa","Stay indoors"];
-  return ["Hazardous","severe","#6d0019","Health emergency"];
-}
-
-// ===== CHARTS =====
-function drawChart(id,values,color="#42a5f5"){
-  const c=$(id),ctx=c.getContext("2d");
-  c.width=c.offsetWidth; c.height=120;
-  ctx.clearRect(0,0,c.width,c.height);
-  const min=Math.min(...values),max=Math.max(...values),r=max-min||1;
-  values.forEach((v,i)=>{
-    const h=((v-min)/r)*c.height;
-    ctx.fillStyle=color;
-    ctx.fillRect(i*(c.width/values.length),c.height-h,c.width/values.length-2,h);
-  });
+function aqiInfo(a){
+if(a<=50)return["Good","good","#2ecc71","Air quality is good"];
+if(a<=100)return["Moderate","moderate","#f1c40f","Sensitive people should be cautious"];
+if(a<=150)return["Unhealthy (Sensitive)","poor","#e67e22","Reduce outdoor activity"];
+if(a<=200)return["Unhealthy","severe","#e53935","Avoid outdoor activity"];
+if(a<=300)return["Very Unhealthy","severe","#8e24aa","Stay indoors"];
+return["Hazardous","severe","#6d0019","Health emergency"];
 }
 
-// ===== LOAD WEATHER + AQI =====
+function drawChart(id,arr,color){
+const c=$(id),ctx=c.getContext("2d");
+c.width=c.offsetWidth;c.height=120;
+ctx.clearRect(0,0,c.width,c.height);
+const min=Math.min(...arr),max=Math.max(...arr),r=max-min||1;
+arr.forEach((v,i)=>{
+const h=((v-min)/r)*c.height;
+ctx.fillStyle=color;
+ctx.fillRect(i*(c.width/arr.length),c.height-h,c.width/arr.length-2,h);
+});
+}
+
 async function loadWeather(lat,lon,name){
-  $("aqiAlert").style.display="none";
-  try{
-    const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m&daily=temperature_2m_min,temperature_2m_max&timezone=auto`).then(r=>r.json());
-    const a=await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&timezone=auto`).then(r=>r.json());
+try{
+const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m&daily=temperature_2m_min,temperature_2m_max&timezone=auto`).then(r=>r.json());
+const a=await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&timezone=auto`).then(r=>r.json());
 
-    localStorage.setItem("skynox_cache",JSON.stringify({lat,lon,name,weather:w,air:a,time:Date.now()}));
+localStorage.setItem("skynox_cache",JSON.stringify({lat,lon,name,w,a}));
 
-    $("location").textContent=name;
-    $("temp").textContent=Math.round(w.current_weather.temperature)+"°C";
+$("location").textContent=name;
+$("temp").textContent=Math.round(w.current_weather.temperature)+"°C";
 
-    // ----- NEXT 24H -----
-    const t24=w.hourly.temperature_2m.slice(0,24);
-    $("hourlyMinMax").textContent=`Min ${Math.min(...t24)}° / Max ${Math.max(...t24)}°`;
-    drawChart("hourlyChart",t24);
+const t24=w.hourly.temperature_2m.slice(0,24);
+$("hourlyMinMax").textContent=`Min ${Math.min(...t24)}° / Max ${Math.max(...t24)}°`;
+drawChart("hourlyChart",t24,"#42a5f5");
 
-    const exp=$("hourlyExpand"); exp.innerHTML="";
-    const minT=Math.min(...t24),maxT=Math.max(...t24);
-    for(let i=0;i<24;i++){
-      let tag="";
-      if(t24[i]===minT) tag=`<span class="marker min">● MIN</span>`;
-      if(t24[i]===maxT) tag=`<span class="marker max">● MAX</span>`;
-      exp.innerHTML+=`<div class="hour-row"><span>${i}:00</span><span>${t24[i]}° ${tag}</span><span>${w.hourly.relativehumidity_2m[i]}%</span><span>${w.hourly.windspeed_10m[i]} km/h</span></div>`;
-    }
-
-    // ----- AQI -----
-    const pmNow=a.hourly.pm2_5[0];
-    const pmPrev=a.hourly.pm2_5[1]??pmNow;
-    const aqiNow=pm25ToAQI(pmNow);
-    const aqiPrev=pm25ToAQI(pmPrev);
-    const [label,cls,color,advice]=aqiInfo(aqiNow);
-
-    $("aqiBadge").className="aqi "+cls;
-    $("aqiBadge").textContent=`AQI ${aqiNow} · ${label}`;
-    $("aqiPM").textContent=`PM2.5: ${pmNow} µg/m³`;
-    $("aqiText").textContent=advice;
-    $("aqiFill").style.width=Math.min(aqiNow/5,100)+"%";
-    $("aqiFill").style.background=color;
-    $("maskTip").textContent=aqiNow<=50?"😌 No mask":aqiNow<=100?"😐 Sensitive mask":aqiNow<=150?"😷 Recommended":"😷 N95 advised";
-    $("aqiTrend").textContent=aqiNow>aqiPrev?"↑ Worsening":aqiNow<aqiPrev?"↓ Improving":"→ Stable";
-
-    // ----- Health banner -----
-    const alertBanner=$("aqiAlert");
-    alertBanner.style.display="block";
-    alertBanner.textContent=advice;
-    alertBanner.style.background=color;
-
-    drawChart("aqiChart",a.hourly.pm2_5.slice(0,24).map(pm25ToAQI),color);
-
-    // ----- Forecast -----
-    const f=$("forecast"); f.innerHTML="";
-    w.daily.temperature_2m_max.forEach((_,i)=>{
-      f.innerHTML+=`<div class="card">Day ${i+1}: ${w.daily.temperature_2m_max[i]}° / ${w.daily.temperature_2m_min[i]}°</div>`;
-    });
-
-  }catch(e){
-    const c=JSON.parse(localStorage.getItem("skynox_cache")||"null");
-    if(c) loadWeather(c.lat,c.lon,c.name);
-    else alert("Network error. Check internet.");
-  }
+const ex=$("hourlyExpand");ex.innerHTML="";
+const minT=Math.min(...t24),maxT=Math.max(...t24);
+for(let i=0;i<24;i++){
+ex.innerHTML+=`<div class="hour-row"><span>${i}:00</span><span>${t24[i]}° ${t24[i]===minT?'<span class="marker min">MIN</span>':''}${t24[i]===maxT?'<span class="marker max">MAX</span>':''}</span><span>${w.hourly.relativehumidity_2m[i]}%</span><span>${w.hourly.windspeed_10m[i]} km/h</span></div>`;
 }
 
-// ===== SEARCH & LOCATION =====
+const pm=a.hourly.pm2_5[0],pmPrev=a.hourly.pm2_5[1]??pm;
+const aqi=pm25ToAQI(pm),aqiPrev=pm25ToAQI(pmPrev);
+const[lab,cls,col,txt]=aqiInfo(aqi);
+
+$("aqiBadge").className="aqi "+cls;
+$("aqiBadge").textContent=`AQI ${aqi} · ${lab}`;
+$("aqiPM").textContent=`PM2.5: ${pm} µg/m³`;
+$("aqiText").textContent=txt;
+$("aqiFill").style.width=Math.min(aqi/5,100)+"%";
+$("aqiFill").style.background=col;
+$("maskTip").textContent=aqi<=50?"😌 No mask":aqi<=100?"😐 Sensitive mask":aqi<=150?"😷 Recommended":"😷 N95 advised";
+$("aqiTrend").textContent=aqi>aqiPrev?"↑ Worsening":aqi<aqiPrev?"↓ Improving":"→ Stable";
+
+const ab=$("aqiAlert");
+ab.style.display="block";
+ab.style.background=col;
+ab.textContent=txt;
+
+drawChart("aqiChart",a.hourly.pm2_5.slice(0,24).map(pm25ToAQI),col);
+
+$("forecast").innerHTML=w.daily.temperature_2m_max.map((_,i)=>`<div class="card">Day ${i+1}: ${w.daily.temperature_2m_max[i]}° / ${w.daily.temperature_2m_min[i]}°</div>`).join("");
+}catch{
+const c=JSON.parse(localStorage.getItem("skynox_cache")||"null");
+if(c)loadWeather(c.lat,c.lon,c.name);
+}
+}
+
+/* Install */
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt",e=>{
+e.preventDefault();deferredPrompt=e;$("installBtn").style.display="block";
+});
+$("installBtn").onclick=async()=>{
+if(!deferredPrompt)return;
+await deferredPrompt.prompt();
+deferredPrompt=null;
+$("installBtn").style.display="none";
+};
+window.addEventListener("appinstalled",()=>console.log("Skynox installed"));
+
+/* SW update */
+navigator.serviceWorker?.addEventListener("controllerchange",()=>{
+$("updateBanner").style.display="block";
+$("updateBanner").onclick=()=>location.reload();
+});
+
 $("searchBtn").onclick=async()=>{
-  const q=$("cityInput").value.trim();
-  if(!q) return;
-  const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`).then(r=>r.json());
-  if(r.results) loadWeather(r.results[0].latitude,r.results[0].longitude,r.results[0].name);
+const q=$("cityInput").value.trim();if(!q)return;
+const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`).then(r=>r.json());
+if(r.results)loadWeather(r.results[0].latitude,r.results[0].longitude,r.results[0].name);
 };
 $("locBtn").onclick=()=>navigator.geolocation.getCurrentPosition(p=>loadWeather(p.coords.latitude,p.coords.longitude,"Current Location"));
-
-// ===== HOURLY EXPAND =====
 $("hourlyCard").onclick=()=>$("hourlyExpand").classList.toggle("open");
 
-// ===== BOOT =====
-loadWeather(28.61,77.23,"Delhi, India");
+const c=JSON.parse(localStorage.getItem("skynox_cache")||"null");
+c?loadWeather(c.lat,c.lon,c.name):loadWeather(28.61,77.23,"Delhi, India");
 </script>
-
 </body>
 </html>

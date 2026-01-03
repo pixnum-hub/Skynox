@@ -1,13 +1,7 @@
-/* ================================
-   Skynox Weather PWA – Service Worker
-   Fixed & Stable Version
-================================ */
-
-const CACHE_VERSION = "skynox-v13";   // 🔁 CHANGE THIS ON EVERY UPDATE
+const CACHE_VERSION = "skynox-v7";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
-/* App shell – cache-first */
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -19,11 +13,9 @@ const APP_SHELL = [
 /* ---------- INSTALL ---------- */
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then(cache => {
-      return cache.addAll(APP_SHELL);
-    })
+    caches.open(STATIC_CACHE).then(cache => cache.addAll(APP_SHELL))
   );
-  self.skipWaiting(); // 🚀 activate immediately
+  self.skipWaiting();
 });
 
 /* ---------- ACTIVATE ---------- */
@@ -32,17 +24,12 @@ self.addEventListener("activate", event => {
     caches.keys().then(keys =>
       Promise.all(
         keys.map(key => {
-          if (
-            key !== STATIC_CACHE &&
-            key !== RUNTIME_CACHE
-          ) {
-            return caches.delete(key); // 🧹 remove old caches
-          }
+          if (!key.startsWith(CACHE_VERSION)) return caches.delete(key);
         })
       )
     )
   );
-  self.clients.claim(); // 👑 take control instantly
+  self.clients.claim();
 });
 
 /* ---------- FETCH ---------- */
@@ -50,30 +37,40 @@ self.addEventListener("fetch", event => {
   const req = event.request;
   const url = new URL(req.url);
 
-  /* ⛅ Weather & AQI APIs — NETWORK FIRST */
-  if (
-    url.hostname.includes("open-meteo.com")
-  ) {
+  // Network-first for APIs
+  if(url.hostname.includes("open-meteo.com")) {
     event.respondWith(networkFirst(req));
     return;
   }
 
-  /* 🧠 App shell — CACHE FIRST */
+  // Cache-first for app shell
   event.respondWith(
-    caches.match(req).then(res => {
-      return res || fetch(req);
-    })
+    caches.match(req).then(res => res || fetch(req))
   );
 });
 
-/* ---------- STRATEGY ---------- */
+/* ---------- NETWORK FIRST STRATEGY ---------- */
 async function networkFirst(req) {
   try {
     const fresh = await fetch(req);
     const cache = await caches.open(RUNTIME_CACHE);
     cache.put(req, fresh.clone());
     return fresh;
-  } catch (err) {
+  } catch(e) {
     return caches.match(req);
   }
 }
+
+/* ---------- MESSAGE LISTENER FOR AQI NOTIFICATIONS ---------- */
+self.addEventListener("message", event => {
+  if(event.data?.type === "AQI_NOTIFY" && self.registration.showNotification){
+    const {aqi, location} = event.data;
+    self.registration.showNotification(⚠️ Poor Air Quality", {
+      body: `AQI is ${aqi} in ${location}. Limit outdoor activity.`,
+      icon: "./icon-192.png",
+      badge: "./icon-192.png",
+      requireInteraction: true,
+      silent: false
+    });
+  }
+});

@@ -2,202 +2,243 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Skynox</title>
+
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#667eea">
 
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
-}
-</script>
-
 <style>
-*{box-sizing:border-box;font-family:system-ui;margin:0;padding:0;}
-html,body{min-height:100svh;margin:0;padding:0;overscroll-behavior-y:auto;}
-body{display:flex;justify-content:center;align-items:flex-start;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);
-      padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);}
-
-.app{width:100%;max-width:390px;min-height:100svh;padding:24px;border-radius:28px;
-     background:rgba(255,255,255,.18);backdrop-filter:blur(20px);
-     position:relative;display:flex;flex-direction:column;align-items:center;gap:20px;}
-
-.app h1{margin-bottom:16px;font-size:1.8rem;text-align:center;}
-
-#darkModeToggle{
-  position:absolute;top:16px;right:16px;width:48px;height:48px;
-  border-radius:50%;border:2px solid rgba(255,255,255,.5);
-  display:flex;align-items:center;justify-content:center;font-size:20px;
-  cursor:pointer;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);
-  transition:0.3s;
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+body{
+  min-height:100svh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  padding:14px;
 }
-#darkModeToggle:hover{background:rgba(255,255,255,.25);}
-
-input,button{width:100%;padding:12px;border-radius:12px;border:none;margin-bottom:12px;text-align:center;}
-button{font-weight:bold;background:rgba(255,255,255,.35);transition:0.3s;}
-button:hover{background:rgba(255,255,255,.5);cursor:pointer;}
-
-.banner{padding:10px;border-radius:12px;font-size:13px;text-align:center;display:none;margin-bottom:16px;}
-.banner.alert{color:#fff;}
-
-.card{background:rgba(255,255,255,.25);padding:16px;border-radius:16px;width:100%;text-align:center;}
-canvas{width:100%;height:120px;border-radius:12px;}
-
-.aqi{padding:6px 10px;border-radius:999px;font-weight:bold;display:inline-block;margin-bottom:10px;}
-.good{background:#2ecc71;color:#fff;}
-.moderate{background:#f1c40f;color:#000;}
-.poor{background:#e67e22;color:#fff;}
-.severe{background:#e53935;color:#fff;}
-
-#hourlyExpand .hour-row{
-    display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.2);margin-bottom:6px;gap:6px;
+body.dark{background:#000}
+.app{
+  width:100%;
+  max-width:390px;
+  min-height:100svh;
+  background:rgba(255,255,255,.18);
+  backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,.35);
+  border-radius:26px;
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
 }
-#hourlyExpand .hour-row span{display:flex;align-items:center;gap:4px;}
-
-.expand{max-height:0;overflow:hidden;transition:max-height .3s ease;}
-.expand.open{max-height:700px;}
-
-#installBtn,#updateBanner{padding:10px;border-radius:12px;font-weight:bold;}
-#installBtn{display:none;background:#000;color:#fff;}
-#updateBanner{background:#000;color:#fff;}
-
-#currentDetails{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;justify-content:center;}
-.detail{
-  background:rgba(255,255,255,.2);
-  padding:8px 12px;
-  border-radius:14px;
-  font-size:13px;
-  flex:1 1 45%;
+body.dark .app{background:rgba(0,0,0,.45);color:#fff}
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.toggle{
+  width:36px;height:36px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.4);
+  background:rgba(255,255,255,.25);
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:6px;
+  cursor:pointer;
+}
+input,button{
+  width:100%;
+  padding:12px;
+  border-radius:14px;
+  border:none;
+}
+button{font-weight:600}
+.card{
+  background:rgba(255,255,255,.25);
+  border-radius:18px;
+  padding:14px;
+}
+.stat-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  font-size:14px;
+}
+footer{
+  text-align:center;
+  font-size:12px;
+  opacity:.8;
+  margin-top:auto;
 }
 
-#aqiTrendChart{border-radius:6px;background:rgba(255,255,255,0.1);}
-
-footer{margin-top:20px;font-size:12px;color:rgba(255,255,255,0.7);text-align:center;}
-
-@media(prefers-color-scheme:dark){
-  body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);}
-  .app{background:rgba(0,0,0,.35);color:#fff;}
-  .detail{background:rgba(255,255,255,.1);}
-  #darkModeToggle{border:2px solid rgba(255,255,255,.5);color:#fff;}
+/* AQI */
+.aqi{
+  padding:6px 12px;
+  border-radius:999px;
+  font-weight:700;
+  display:inline-block;
+  margin-bottom:6px;
 }
+.aqi.good{background:#2ecc71;color:#fff}
+.aqi.moderate{background:#f1c40f;color:#000}
+.aqi.poor{background:#e67e22;color:#fff}
+.aqi.severe{background:#e53935;color:#fff}
+
+.aqi-bar{
+  height:8px;
+  background:rgba(255,255,255,.25);
+  border-radius:8px;
+  overflow:hidden;
+  margin:6px 0;
+}
+#a
+qiFill{
+  display:block;
+  height:100%;
+  width:0%;
+}
+canvas{width:100%;border-radius:12px}
 </style>
 </head>
 
 <body>
 <div class="app">
 
-<div id="darkModeToggle">🌓</div>
+<header>
+  <h2>🌦 Skynox</h2>
+  <div class="toggle" id="darkToggle">🌙</div>
+</header>
 
-<h1>🌦 Skynox</h1>
-
-<div class="banner" id="offlineBanner" style="background:#555;color:#fff;display:none;">
-  ⚠ You are offline — showing cached data
-</div>
-
-<div class="banner" id="updateBanner">New update available — Tap to refresh</div>
-
-<div class="search-section" style="width:100%;display:flex;flex-direction:column;gap:10px;">
 <input id="cityInput" placeholder="Search city">
 <button id="searchBtn">Search</button>
-<button id="locBtn">📍 Use My Location</button>
-<button id="installBtn">⬇ Install Skynox</button>
-</div>
+<button id="locBtn">📍 Use Current Location</button>
+<button id="installBtn" style="display:none">⬇ Install App</button>
 
-<div class="weather-section" style="width:100%;">
-<h2 id="location">--</h2>
-<p id="temp">--°</p>
+<h3 id="location">--</h3>
+<h1 id="temp">--°C</h1>
 
-<div id="currentDetails">
-  <div class="detail">💧 <strong>Humidity:</strong> <span id="humidity">--%</span></div>
-  <div class="detail">🌬 <strong>Wind:</strong> <span id="wind">-- km/h</span></div>
-  <div class="detail">⏱ <strong>Pressure:</strong> <span id="pressure">-- hPa</span></div>
-  <div class="detail">🌡 <strong>Feels Like:</strong> <span id="feelsLike">--°</span></div>
-  <div class="detail">🌅 <strong>Sunrise:</strong> <span id="sunrise">--:--</span></div>
-  <div class="detail">🌇 <strong>Sunset:</strong> <span id="sunset">--:--</span></div>
-  <div class="detail">🕒 <strong>Local Time:</strong> <span id="localTime">--:--</span></div>
-</div>
-</div>
-
-<div class="banner alert" id="aqiAlert"></div>
 <div class="card">
-<h4>🌫 Air Quality</h4>
-<div id="aqiBadge" class="aqi">--</div>
-<canvas id="aqiTrendChart" style="height:50px;margin-bottom:8px;"></canvas>
-<p id="aqiPM">--</p>
-<p id="aqiTrend">--</p>
-<p id="aqiText">--</p>
-<div style="height:6px;background:rgba(255,255,255,.3);border-radius:6px;overflow:hidden">
-  <span id="aqiFill" style="display:block;height:100%;width:0%"></span>
-</div>
-<div id="maskTip" style="margin-top:6px;font-size:13px"></div>
-<canvas id="aqiChart"></canvas>
+  <div class="stat-grid">
+    <div>Feels like<br><b id="feelsLike">--</b></div>
+    <div>Humidity<br><b id="humidity">--</b></div>
+    <div>Wind<br><b id="wind">--</b></div>
+    <div>Pressure<br><b id="pressure">--</b></div>
+  </div>
 </div>
 
-<div class="card" id="hourlyCard">
-<h4>Next 24h Temperature</h4>
-<small id="hourlyMinMax">--</small>
-<canvas id="hourlyChart"></canvas>
-<div id="hourlyExpand" class="expand"></div>
+<div class="card">
+  <h3>🌫 Air Quality</h3>
+  <div id="aqiBadge" class="aqi">--</div>
+  <p id="aqiPM">PM2.5: --</p>
+  <p id="aqiTrend">--</p>
+  <div class="aqi-bar"><span id="aqiFill"></span></div>
+  <p id="aqiText"></p>
+  <p id="maskTip"></p>
+  <canvas id="aqiChart" height="110"></canvas>
 </div>
-
-<h3>📅 7-Day Forecast</h3>
-<div id="forecast"></div>
 
 <footer>© Manik Roy 2025. All Rights Reserved.</footer>
-
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
 
-/* ---------- Dark Mode Toggle ---------- */
-const darkToggle=$("darkModeToggle");
-darkToggle.onclick=()=>{
-  document.body.classList.toggle("dark-mode");
-  if(document.body.classList.contains("dark-mode")) localStorage.setItem("darkMode","true");
-  else localStorage.removeItem("darkMode");
+/* DARK MODE */
+if(localStorage.theme==="dark")document.body.classList.add("dark");
+$("darkToggle").onclick=()=>{
+  document.body.classList.toggle("dark");
+  localStorage.theme=document.body.classList.contains("dark")?"dark":"light";
 };
-if(localStorage.getItem("darkMode")) document.body.classList.add("dark-mode");
 
-/* ---------- Offline Banner ---------- */
-const offlineBanner = $("offlineBanner");
-function updateOnlineStatus() { offlineBanner.style.display = navigator.onLine ? "none" : "block"; }
-updateOnlineStatus();
-window.addEventListener("online", updateOnlineStatus);
-window.addEventListener("offline", updateOnlineStatus);
+/* SERVICE WORKER */
+if("serviceWorker"in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
 
-/* ---------- PM2.5 → AQI ---------- */
-function pm25ToAQI(pm){ const bp=[[0,12,0,50],[12.1,35.4,51,100],[35.5,55.4,101,150],[55.5,150.4,151,200],[150.5,250.4,201,300],[250.5,500,301,500]]; for(const [bL,bH,aL,aH] of bp) if(pm>=bL && pm<=bH) return Math.round(((aH-aL)/(bH-bL))*(pm-bL)+aL); return 500; }
-function aqiInfo(a){ if(a<=50)return["Good","good","#2ecc71","Air quality is good"]; if(a<=100)return["Moderate","moderate","#f1c40f","Sensitive people should be cautious"]; if(a<=150)return["Unhealthy (Sensitive)","poor","#e67e22","Reduce outdoor activity"]; if(a<=200)return["Unhealthy","severe","#e53935","Avoid outdoor activity"]; if(a<=300)return["Very Unhealthy","severe","#8e24aa","Stay indoors"]; return["Hazardous","severe","#6d0019","Health emergency"]; }
+/* INSTALL */
+let dp;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();dp=e;$("installBtn").style.display="block";
+});
+$("installBtn").onclick=()=>dp?.prompt();
 
-/* ---------- Charts ---------- */
-function drawChart(id,arr,color){ const c=$(id),ctx=c.getContext("2d"); c.width=c.offsetWidth;c.height=120;ctx.clearRect(0,0,c.width,c.height); const min=Math.min(...arr),max=Math.max(...arr),r=max-min||1; arr.forEach((v,i)=>{const h=((v-min)/r)*c.height;ctx.fillStyle=color;ctx.fillRect(i*(c.width/arr.length),c.height-h,c.width/arr.length-2,h);}); }
-function drawAQITrend(id,pmArray){ const c=$(id), ctx=c.getContext("2d"); c.width=c.offsetWidth; c.height=50; ctx.clearRect(0,0,c.width,c.height); const aqiArray = pmArray.map(pm25ToAQI); const maxAQI = Math.max(...aqiArray); const minAQI = Math.min(...aqiArray); const range = maxAQI - minAQI || 1; aqiArray.forEach((aqi,i)=>{ const barHeight = ((aqi - minAQI)/range)*c.height; let color; if(aqi<=50) color="#2ecc71"; else if(aqi<=100) color="#f1c40f"; else if(aqi<=150) color="#e67e22"; else if(aqi<=200) color="#e53935"; else if(aqi<=300) color="#8e24aa"; else color="#6d0019"; ctx.fillStyle = color; ctx.fillRect(i*(c.width/aqiArray.length), c.height-barHeight, c.width/aqiArray.length-1, barHeight); }); }
+/* AQI HELPERS */
+function pm25ToAQI(pm){
+  const bp=[[0,12,0,50],[12.1,35.4,51,100],[35.5,55.4,101,150],[55.5,150.4,151,200],[150.5,250.4,201,300],[250.5,500,301,500]];
+  for(const[bL,bH,aL,aH]of bp)
+    if(pm>=bL&&pm<=bH)
+      return Math.round(((aH-aL)/(bH-bL))*(pm-bL)+aL);
+  return 500;
+}
+function aqiInfo(a){
+  if(a<=50)return["Good","good","#2ecc71","Air quality is good","😌 No mask"];
+  if(a<=100)return["Moderate","moderate","#f1c40f","Sensitive groups be cautious","😐 Sensitive mask"];
+  if(a<=150)return["Unhealthy (Sensitive)","poor","#e67e22","Reduce outdoor activity","😷 Mask recommended"];
+  return["Unhealthy","severe","#e53935","Avoid outdoor exposure","😷 N95 advised"];
+}
+function drawAQI(arr,color){
+  const c=$("aqiChart"),ctx=c.getContext("2d");
+  c.width=c.offsetWidth;c.height=110;
+  ctx.clearRect(0,0,c.width,c.height);
+  const min=Math.min(...arr),max=Math.max(...arr),r=max-min||1;
+  arr.forEach((v,i)=>{
+    const h=((v-min)/r)*c.height;
+    ctx.fillStyle=color;
+    ctx.fillRect(i*(c.width/arr.length),c.height-h,(c.width/arr.length)-2,h);
+  });
+}
 
-/* ---------- Load Weather & AQI ---------- */
-async function loadWeather(lat,lon,name){ try{ const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,pressure_msl&daily=temperature_2m_min,temperature_2m_max,sunrise,sunset&timezone=auto`).then(r=>r.json()); const a=await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&timezone=auto`).then(r=>r.json()); localStorage.setItem("skynox_cache",JSON.stringify({lat,lon,name,w,a})); $("location").textContent=name; $("temp").textContent=Math.round(w.current_weather.temperature)+"°C"; $("humidity").textContent=w.current_weather.relativehumidity_2m+"%"; $("wind").textContent=w.current_weather.windspeed_10m+" km/h"; $("pressure").textContent=w.current_weather.pressure_msl?w.current_weather.pressure_msl+" hPa":"--"; const temp=w.current_weather.temperature; const wind=w.current_weather.windspeed_10m; let feels=temp<27?Math.round(temp-wind*0.2):Math.round(temp+(0.33*temp-0.7*w.current_weather.relativehumidity_2m-4)); $("feelsLike").textContent=feels+"°C"; $("sunrise").textContent=new Date(w.daily.sunrise[0]).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); $("sunset").textContent=new Date(w.daily.sunset[0]).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); $("localTime").textContent=new Date(w.current_weather.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); const t24=w.hourly.temperature_2m.slice(0,24); $("hourlyMinMax").textContent=`Min ${Math.min(...t24)}° / Max ${Math.max(...t24)}°`; drawChart("hourlyChart",t24,"#42a5f5"); const ex=$("hourlyExpand"); ex.innerHTML=""; const minT=Math.min(...t24),maxT=Math.max(...t24); for(let i=0;i<24;i++){ const tempHour=t24[i],humidity=w.hourly.relativehumidity_2m[i],wind=w.hourly.windspeed_10m[i]; ex.innerHTML+=`<div class="hour-row"><span>${i}:00</span><span>${tempHour}° ${tempHour===minT?'<span class="marker min">MIN</span>':''}${tempHour===maxT?'<span class="marker max">MAX</span>':''}</span><span>💧 ${humidity}%</span><span>🌬 ${wind} km/h</span></div>`; } const pm=a.hourly.pm2_5[0],pmPrev=a.hourly.pm2_5[1]??pm; const aqi=pm25ToAQI(pm),aqiPrev=pm25ToAQI(pmPrev); const [lab,cls,col,txt]=aqiInfo(aqi); $("aqiBadge").className="aqi "+cls; $("aqiBadge").textContent=`AQI ${aqi} · ${lab}`; $("aqiPM").textContent=`PM2.5: ${pm} µg/m³`; $("aqiText").textContent=txt; $("aqiFill").style.width=Math.min(aqi/5,100)+"%"; $("aqiFill").style.background=col; $("maskTip").textContent=aqi<=50?"😌 No mask":aqi<=100?"😐 Sensitive mask":aqi<=150?"😷 Recommended":"😷 N95 advised"; $("aqiTrend").textContent=aqi>aqiPrev?"↑ Worsening":aqi<aqiPrev?"↓ Improving":"→ Stable"; const ab=$("aqiAlert"); ab.style.display="block"; ab.style.background=col; ab.textContent=txt; drawChart("aqiChart",a.hourly.pm2_5.slice(0,24).map(pm25ToAQI),col); drawAQITrend("aqiTrendChart", a.hourly.pm2_5.slice(0,24)); $("forecast").innerHTML=w.daily.temperature_2m_max.map((_,i)=>`<div class="card">Day ${i+1}: ${w.daily.temperature_2m_max[i]}° / ${w.daily.temperature_2m_min[i]}°</div>`).join(""); }catch{ const c=JSON.parse(localStorage.getItem("skynox_cache")||"null"); if(c) loadWeather(c.lat,c.lon,c.name); }}
+/* WEATHER + AQI */
+async function loadWeather(lat,lon,name){
+  const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,pressure_msl&timezone=auto`).then(r=>r.json());
+  const aq=await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&timezone=auto`).then(r=>r.json());
 
-/* ---------- Install Button Logic ---------- */
-const installBtn=$("installBtn"); let deferredPrompt;
-window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; installBtn.style.display='block'; });
-if(!window.matchMedia('(pointer: coarse)').matches){ installBtn.style.display='block'; }
-installBtn.onclick=async()=>{ if(deferredPrompt){ await deferredPrompt.prompt(); deferredPrompt=null; installBtn.style.display='none'; } else{ alert("To install Skynox PWA on desktop: click the browser menu → 'Install Skynox'"); }};
-window.addEventListener("appinstalled",()=>{ console.log("Skynox installed"); installBtn.style.display='none'; });
+  const idx=w.hourly.time.indexOf(w.current_weather.time);
 
-/* ---------- SW Update ---------- */
-navigator.serviceWorker?.addEventListener("controllerchange",()=>{ $("updateBanner").style.display="block"; $("updateBanner").onclick=()=>location.reload(); });
+  $("location").textContent=name;
+  $("temp").textContent=Math.round(w.current_weather.temperature)+"°C";
 
-/* ---------- UI Actions ---------- */
-$("searchBtn").onclick=async()=>{ const q=$("cityInput").value.trim();if(!q)return; const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`).then(r=>r.json()); if(r.results) loadWeather(r.results[0].latitude,r.results[0].longitude,r.results[0].name); };
-$("locBtn").onclick=()=>navigator.geolocation.getCurrentPosition(p=>loadWeather(p.coords.latitude,p.coords.longitude,"Current Location"));
-$("hourlyCard").onclick=()=>$("hourlyExpand").classList.toggle("open");
+  const h=w.hourly.relativehumidity_2m[idx];
+  const wi=w.hourly.windspeed_10m[idx];
+  const p=w.hourly.pressure_msl[idx];
+  const t=w.current_weather.temperature;
 
-const c=JSON.parse(localStorage.getItem("skynox_cache")||"null"); c?loadWeather(c.lat,c.lon,c.name):loadWeather(28.61,77.23,"Delhi, India");
+  $("humidity").textContent=h+"%";
+  $("wind").textContent=wi+" km/h";
+  $("pressure").textContent=p+" hPa";
+  $("feelsLike").textContent=Math.round(t-(wi*0.7)+(h*0.01))+"°C";
+
+  const pm=aq.hourly.pm2_5[idx];
+  const pmPrev=aq.hourly.pm2_5[idx+1]??pm;
+  const aqi=pm25ToAQI(pm);
+  const aqiPrev=pm25ToAQI(pmPrev);
+  const [lab,cls,col,txt,mask]=aqiInfo(aqi);
+
+  $("aqiBadge").className="aqi "+cls;
+  $("aqiBadge").textContent=`AQI ${aqi} · ${lab}`;
+  $("aqiPM").textContent=`PM2.5: ${pm} µg/m³`;
+  $("aqiText").textContent=txt;
+  $("maskTip").textContent=mask;
+  $("aqiTrend").textContent=aqi>aqiPrev?"↑ Worsening":aqi<aqiPrev?"↓ Improving":"→ Stable";
+  $("aqiFill").style.width=Math.min(aqi/5,100)+"%";
+  $("aqiFill").style.background=col;
+
+  drawAQI(aq.hourly.pm2_5.slice(idx,idx+24).map(pm25ToAQI),col);
+}
+
+$("searchBtn").onclick=async()=>{
+  const q=$("cityInput").value.trim();
+  if(!q)return;
+  const g=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`).then(r=>r.json());
+  if(g.results)loadWeather(g.results[0].latitude,g.results[0].longitude,g.results[0].name);
+};
+$("locBtn").onclick=()=>navigator.geolocation.getCurrentPosition(p=>{
+  loadWeather(p.coords.latitude,p.coords.longitude,"Current Location");
+});
+
+loadWeather(28.61,77.23,"Delhi, India");
 </script>
 </body>
 </html>

@@ -24,7 +24,9 @@ self.addEventListener("activate", event => {
     caches.keys().then(keys =>
       Promise.all(
         keys.map(key => {
-          if (!key.startsWith(CACHE_VERSION)) return caches.delete(key);
+          if (!key.startsWith(CACHE_VERSION)) {
+            return caches.delete(key);
+          }
         })
       )
     )
@@ -37,40 +39,39 @@ self.addEventListener("fetch", event => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Network-first for APIs
-  if(url.hostname.includes("open-meteo.com")) {
+  // Weather & AQI APIs — network first, cache fallback
+  if (
+    url.hostname.includes("open-meteo.com") ||
+    url.hostname.includes("air-quality-api.open-meteo.com") ||
+    url.hostname.includes("geocoding-api.open-meteo.com")
+  ) {
     event.respondWith(networkFirst(req));
     return;
   }
 
-  // Cache-first for app shell
+  // App shell & assets — cache first
   event.respondWith(
     caches.match(req).then(res => res || fetch(req))
   );
 });
 
-/* ---------- NETWORK FIRST STRATEGY ---------- */
+/* ---------- STRATEGY ---------- */
 async function networkFirst(req) {
   try {
     const fresh = await fetch(req);
     const cache = await caches.open(RUNTIME_CACHE);
     cache.put(req, fresh.clone());
     return fresh;
-  } catch(e) {
-    return caches.match(req);
+  } catch (e) {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+
+    // Fallback for offline: return last cached weather data if available
+    if (req.url.includes("open-meteo.com") || req.url.includes("air-quality-api.open-meteo.com")) {
+      const data = await caches.match("./index.html");
+      return data || new Response("Offline", {status:503, statusText:"Offline"});
+    }
+
+    return new Response("Offline", {status:503, statusText:"Offline"});
   }
 }
-
-/* ---------- MESSAGE LISTENER FOR AQI NOTIFICATIONS ---------- */
-self.addEventListener("message", event => {
-  if(event.data?.type === "AQI_NOTIFY" && self.registration.showNotification){
-    const {aqi, location} = event.data;
-    self.registration.showNotification(⚠️ Poor Air Quality", {
-      body: `AQI is ${aqi} in ${location}. Limit outdoor activity.`,
-      icon: "./icon-192.png",
-      badge: "./icon-192.png",
-      requireInteraction: true,
-      silent: false
-    });
-  }
-});

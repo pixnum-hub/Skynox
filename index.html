@@ -5,18 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Skynox Weather & AQI</title>
 
-<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#667eea">
 
 <style>
+/* --------- BASE --------- */
 *{box-sizing:border-box;font-family:system-ui;margin:0;padding:0}
-body{
-  min-height:100svh;
-  display:flex;
-  justify-content:center;
-  align-items:flex-start;
-  background:linear-gradient(135deg,#667eea,#764ba2);
-  color:#000
-}
+body{min-height:100svh;display:flex;justify-content:center;align-items:flex-start;background:linear-gradient(135deg,#667eea,#764ba2);color:#000}
 body.dark{background:#121212;color:#fff}
 body.amoled{background:#000;color:#fff}
 
@@ -25,26 +20,30 @@ body.amoled{background:#000;color:#fff}
   max-width:390px;
   padding:16px;
   border-radius:24px;
-  margin-bottom:20px;
-  background:rgba(255,255,255,.18);
-  backdrop-filter:blur(18px);
   border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.18);
+  backdrop-filter:blur(16px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 }
 
 .header{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:16px;
+  width:100%;
+  margin-bottom:14px;
 }
 
 .toggle{
-  width:38px;height:38px;border-radius:50%;
+  width:36px;height:36px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  background:rgba(255,255,255,.35);
+  background:rgba(255,255,255,.3);
   cursor:pointer;
 }
 
+/* Inputs & buttons */
 input,button{
   width:100%;
   padding:12px;
@@ -52,30 +51,31 @@ input,button{
   border:none;
   margin-bottom:12px;
 }
-button{font-weight:bold;background:rgba(255,255,255,.4)}
+button{font-weight:bold;background:rgba(255,255,255,.35)}
 
+/* Cards */
 .card{
   background:rgba(255,255,255,.25);
-  padding:16px;
-  border-radius:20px;
-  margin-bottom:16px;
+  padding:14px;
+  border-radius:18px;
+  margin-bottom:14px;
+  width:100%;
 }
 body.dark .card{background:rgba(255,255,255,.08)}
 body.amoled .card{background:#111;border:1px solid rgba(255,255,255,.1)}
 
-.row{
-  display:flex;
-  justify-content:space-between;
-  margin-top:10px;
-  padding-bottom:6px;
-  font-size:14px;
-}
-
+/* Small text */
 .small{font-size:13px;opacity:.85}
+
+/* Rows */
+.row{display:flex;justify-content:space-between;margin-top:6px;font-size:14px}
+
+/* Charts */
 canvas{width:100%;height:120px}
 
+/* AQI */
 .aqi{
-  padding:6px 12px;
+  padding:6px 10px;
   border-radius:999px;
   font-weight:bold;
   display:inline-block;
@@ -86,15 +86,36 @@ canvas{width:100%;height:120px}
 .poor{background:#e67e22;color:#fff}
 .severe{background:#e53935;color:#fff}
 
+/* Banners */
+.banner{
+  display:none;
+  padding:8px;
+  border-radius:10px;
+  margin-bottom:10px;
+  text-align:center;
+  font-size:13px;
+}
+
+/* Feels like text spacing fix */
+#feels {
+  margin-top:6px;
+  margin-bottom:8px;
+  font-size:14px;
+  opacity:0.9;
+}
+
+/* Footer */
 .footer{
   text-align:center;
   font-size:12px;
   opacity:.7;
-  margin-top:8px
+  margin-top:6px;
 }
 
-body.amoled input,body.amoled button{background:#222;color:#fff}
-body.amoled .toggle{background:#333}
+/* Buttons & inputs AMOLED */
+body.amoled input, body.amoled button{background:#222;color:#fff}
+body.amoled .toggle{background:#333;color:#fff}
+body.amoled .banner{background:#111;color:#fff}
 </style>
 </head>
 
@@ -106,177 +127,202 @@ body.amoled .toggle{background:#333}
   <div class="toggle" id="themeToggle">🌙</div>
 </div>
 
+<div class="banner" id="updateBanner">New update available — tap to refresh</div>
+
 <input id="cityInput" placeholder="Search city">
 <button id="searchBtn">Search</button>
 <button id="locBtn">📍 Use My Location</button>
-<button id="installBtn" style="display:none">⬇ Install Skynox</button>
+<button id="installBtn">⬇ Install Skynox</button>
 
 <h3 id="location">--</h3>
 <h1 id="temp">--°</h1>
-<p id="feels" class="small">Feels like --°</p>
+<p id="feels" class="small">--</p>
 
-<!-- Current Conditions -->
 <div class="card">
-<h4>Current Conditions</h4>
-<div class="row"><span>💧 Humidity</span><span id="humidity">--%</span></div>
-<div class="row"><span>🌬 Wind</span><span id="wind">-- km/h</span></div>
-<div class="row"><span>💨 Gust</span><span id="windGust">-- km/h</span></div>
-<div class="row"><span>🧭 Direction</span><span id="windDir">--</span></div>
-<div class="row"><span>☀️ UV Index</span><span id="uv">--</span></div>
-<div class="row"><span>⛅ Clouds</span><span id="clouds">--%</span></div>
-<div class="row"><span>⏲ Pressure</span><span id="pressure">-- hPa</span></div>
-<div class="row"><span>🌧 Rain</span><span id="rain">-- mm</span></div>
-<div class="row"><span>❄️ Snow</span><span id="snow">-- mm</span></div>
-<div class="row"><span>👁 Visibility</span><span id="visibility">-- km</span></div>
-<div class="row"><span>🌙 Moon Phase</span><span id="moon">--</span></div>
+  <h4>Current Conditions</h4>
+  <div class="row"><span>💧 Humidity</span><span id="humidity">--%</span></div>
+  <div class="row"><span>🌬 Wind</span><span id="wind">-- km/h</span></div>
+  <div class="row"><span>🧭 Direction</span><span id="windDir">--</span></div>
+  <div class="row"><span>⏲ Pressure</span><span id="pressure">-- hPa</span></div>
 </div>
 
-<!-- AQI -->
 <div class="card">
-<h4>🌫 Air Quality</h4>
-<div id="aqiBadge" class="aqi">--</div>
-<p id="aqiText" class="small">--</p>
-<p id="maskTip" class="small">--</p>
-<p id="aqiTrend" class="small">--</p>
-<canvas id="aqiChart"></canvas>
+  <h4>🌫 Air Quality</h4>
+  <div id="aqiBadge" class="aqi">--</div>
+  <p id="aqiText" class="small">--</p>
+  <p id="maskTip" class="small">--</p>
+  <p id="aqiTrend" class="small">--</p>
+  <canvas id="aqiChart"></canvas>
 
-<div class="row"><span>PM2.5</span><span id="pm25">--</span></div>
-<div class="row"><span>PM10</span><span id="pm10">--</span></div>
-<div class="row"><span>O₃</span><span id="o3">--</span></div>
-<div class="row"><span>NO₂</span><span id="no2">--</span></div>
+  <h5 style="margin-top:10px">Hourly AQI</h5>
+  <div id="aqiHourly" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;"></div>
 
-<div class="small" id="aqiAdvice" style="margin-top:8px"></div>
-<div style="height:8px;border-radius:8px;overflow:hidden;margin-top:6px;background:#444">
-  <div id="aqiBar" style="height:100%;width:0%"></div>
+  <div id="aqiDetails" class="small"></div>
+  <div style="margin-top:6px">
+    <div class="row"><span>PM2.5</span><span id="pm25">-- µg/m³</span></div>
+    <div class="row"><span>PM10</span><span id="pm10">-- µg/m³</span></div>
+    <div class="row"><span>O₃</span><span id="o3">-- µg/m³</span></div>
+    <div class="row"><span>NO₂</span><span id="no2">-- µg/m³</span></div>
+  </div>
+  <div class="small" id="aqiAdvice" style="margin-top:8px"></div>
+
+  <div style="height:8px;border-radius:8px;overflow:hidden;margin-top:6px;background:#ddd">
+    <div id="aqiBar" style="height:100%;width:0%"></div>
+  </div>
 </div>
-</div>
 
-<!-- 24h Temperature -->
 <div class="card">
-<h4>Next 24h Temperature</h4>
-<p id="hourMinMax" class="small">--</p>
-<canvas id="hourlyChart"></canvas>
+  <h4>Next 24h Temperature</h4>
+  <p id="hourMinMax" class="small">--</p>
+  <canvas id="hourlyChart"></canvas>
 </div>
 
-<!-- Forecast -->
 <div class="card">
-<h4>7-Day Forecast</h4>
-<div id="forecast"></div>
+  <h4>7-Day Forecast</h4>
+  <div id="forecast"></div>
 </div>
 
-<div class="footer">© Manik Roy 2025</div>
+<div class="footer">© Manik Roy 2025. All Rights Reserved.</div>
 </div>
 
 <script>
-const $=id=>document.getElementById(id);
-
-/* THEME */
+/* ---------------- THEME ---------------- */
 let mode=0;
-themeToggle.onclick=()=>{
-  mode=(mode+1)%3;
-  document.body.className=mode===1?"dark":mode===2?"amoled":"";
-  themeToggle.textContent=mode===0?"🌙":mode===1?"🌑":"☀️";
+const body=document.body;
+const toggle=document.getElementById("themeToggle");
+function applyTheme(){
+  body.className="";
+  if(mode===1) body.classList.add("dark");
+  if(mode===2) body.classList.add("amoled");
+  toggle.textContent = mode===0 ? "🌙" : mode===1 ? "🌑" : "☀️";
+}
+toggle.onclick=()=>{mode=(mode+1)%3;applyTheme();}
+applyTheme();
+
+/* ---------------- SERVICE WORKER ---------------- */
+if("serviceWorker"in navigator){
+  navigator.serviceWorker.register("sw.js");
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    updateBanner.style.display="block";
+    updateBanner.onclick=()=>location.reload();
+  });
+}
+
+/* ---------------- INSTALL ---------------- */
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  installBtn.style.display="block";
+});
+installBtn.onclick=async()=>{
+  if(!deferredPrompt)return;
+  await deferredPrompt.prompt();
+  deferredPrompt=null;
 };
 
-/* AQI HELPERS */
+/* ---------------- AQI HELPERS ---------------- */
 function pm25ToAQI(pm){
 const bp=[[0,12,0,50],[12.1,35.4,51,100],[35.5,55.4,101,150],[55.5,150.4,151,200],[150.5,250,201,300]];
-for(const[bL,bH,aL,aH]of bp)
-if(pm>=bL&&pm<=bH)
-return Math.round(((aH-aL)/(bH-bL))*(pm-bL)+aL);
+for(const[bL,bH,aL,aH]of bp) if(pm>=bL&&pm<=bH) return Math.round(((aH-aL)/(bH-bL))*(pm-bL)+aL);
 return 300;
 }
-function aqiColor(a){return a<=50?"#2ecc71":a<=100?"#f1c40f":a<=150?"#e67e22":"#e53935";}
 function aqiInfo(a){
 if(a<=50)return["Good","good","Air quality is good","😌 No mask"];
 if(a<=100)return["Moderate","moderate","Sensitive people be cautious","😐 Optional mask"];
-if(a<=150)return["Unhealthy","poor","Reduce outdoor activity","😷 Mask advised"];
-return["Severe","severe","Stay indoors","😷 N95 required"];
+if(a<=150)return["Unhealthy (Sensitive)","poor","Reduce outdoor activity","😷 Mask advised"];
+return["Unhealthy","severe","Avoid outdoor activity","😷 N95 recommended"];
 }
+function aqiHealthAdvice(aqi){if(aqi<=50)return "Air quality is ideal for outdoor activities.";if(aqi<=100)return "Sensitive individuals should limit prolonged exertion.";if(aqi<=150)return "Children, elderly & asthmatics should reduce outdoor activity.";if(aqi<=200)return "Everyone should avoid long outdoor exertion.";return "Health alert: Stay indoors and keep windows closed.";}
+function aqiColor(a){return a<=50?"#2ecc71":a<=100?"#f1c40f":a<=150?"#e67e22":a<=200?"#e53935":"#6d0019";}
+function aqiIcon(a){return a<=50?"😊":a<=100?"😐":a<=150?"😷":a<=200?"🤢":"☠️";}
 
-/* CHART */
-function drawChart(id,data,color){
-const c=$(id),x=c.getContext("2d");
+/* ---------------- CHART ---------------- */
+function drawChart(id,arr,color){
+const c=document.getElementById(id),ctx=c.getContext("2d");
 c.width=c.offsetWidth;c.height=120;
-x.clearRect(0,0,c.width,c.height);
-const min=Math.min(...data),max=Math.max(...data),r=max-min||1;
-data.forEach((v,i)=>{
+ctx.clearRect(0,0,c.width,c.height);
+const min=Math.min(...arr),max=Math.max(...arr),r=max-min||1;
+arr.forEach((v,i)=>{
 const h=((v-min)/r)*c.height;
-x.fillStyle=color;
-x.fillRect(i*(c.width/data.length),c.height-h,c.width/data.length-2,h);
+ctx.fillStyle=color;
+ctx.fillRect(i*(c.width/arr.length),c.height-h,c.width/arr.length-2,h);
 });
 }
 
-/* LOAD WEATHER */
+/* ---------------- LOAD WEATHER ---------------- */
+let lastLat,lastLon,autoAQI;
 async function loadWeather(lat,lon,name){
-const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,windgusts_10m,winddirection_10m,pressure_msl,cloudcover,uv_index,precipitation,snowfall,visibility&daily=temperature_2m_min,temperature_2m_max,moon_phase&timezone=auto`).then(r=>r.json());
-
-const a=await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto`).then(r=>r.json());
-
-const idx=w.hourly.time.indexOf(w.current_weather.time);
+lastLat=lat;lastLon=lon;
+const w=await fetch(
+`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,winddirection_10m,pressure_msl&daily=temperature_2m_min,temperature_2m_max&timezone=auto`
+).then(r=>r.json());
+const a=await fetch(
+`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto`
+).then(r=>r.json());
+localStorage.setItem("skynox_cache",JSON.stringify({lat,lon,name,w,a}));
 
 location.textContent=name;
 temp.textContent=Math.round(w.current_weather.temperature)+"°C";
-feels.textContent="Feels like (approx) "+Math.round(w.current_weather.temperature)+"°C";
+feels.textContent="Feels like "+Math.round(w.current_weather.temperature)+"°C";
+humidity.textContent=w.hourly.relativehumidity_2m[0]+"%";
+wind.textContent=w.hourly.windspeed_10m[0]+" km/h";
+windDir.textContent=w.hourly.winddirection_10m[0]+"°";
+pressure.textContent=Math.round(w.hourly.pressure_msl[0])+" hPa";
 
-humidity.textContent=w.hourly.relativehumidity_2m[idx]+"%";
-wind.textContent=w.hourly.windspeed_10m[idx]+" km/h";
-windGust.textContent=w.hourly.windgusts_10m[idx]+" km/h";
-windDir.textContent=w.hourly.winddirection_10m[idx]+"°";
-pressure.textContent=w.hourly.pressure_msl[idx]+" hPa";
-clouds.textContent=w.hourly.cloudcover[idx]+"%";
-uv.textContent=w.hourly.uv_index[idx];
-rain.textContent=w.hourly.precipitation[idx]+" mm";
-snow.textContent=w.hourly.snowfall[idx]+" mm";
-visibility.textContent=(w.hourly.visibility[idx]/1000).toFixed(1)+" km";
-
-moon.textContent=["New","Waxing Crescent","First Quarter","Waxing Gibbous","Full","Waning Gibbous","Last Quarter","Waning Crescent"][Math.floor(w.daily.moon_phase[0]*7)];
-
-const pm=a.hourly.pm2_5[idx];
-const aqi=pm25ToAQI(pm);
-const [label,cls,text,mask]=aqiInfo(aqi);
-
-aqiBadge.className="aqi "+cls;
-aqiBadge.textContent="AQI "+aqi+" · "+label;
-aqiText.textContent=text;
-maskTip.textContent=mask;
-aqiTrend.textContent="Live AQI";
-
-aqiBar.style.width=Math.min(aqi/3,100)+"%";
-aqiBar.style.background=aqiColor(aqi);
-
-pm25.textContent=pm+" µg/m³";
-pm10.textContent=a.hourly.pm10[idx]+" µg/m³";
-o3.textContent=a.hourly.ozone[idx]+" µg/m³";
-no2.textContent=a.hourly.nitrogen_dioxide[idx]+" µg/m³";
-
-aqiAdvice.textContent=aqi<=50?"Ideal outdoor air":aqi<=100?"Sensitive caution":"Avoid outdoor activity";
-
-drawChart("aqiChart",a.hourly.pm2_5.slice(idx,idx+24).map(pm25ToAQI),"#e53935");
-
-const t24=w.hourly.temperature_2m.slice(idx,idx+24);
+const t24=w.hourly.temperature_2m.slice(0,24);
 hourMinMax.textContent=`Min ${Math.min(...t24)}° / Max ${Math.max(...t24)}°`;
 drawChart("hourlyChart",t24,"#42a5f5");
 
-forecast.innerHTML=w.daily.temperature_2m_max.map((m,i)=>`<div class="row"><span>Day ${i+1}</span><span>${m}° / ${w.daily.temperature_2m_min[i]}°</span></div>`).join("");
+const pm=a.hourly.pm2_5[0];
+const aqi=pm25ToAQI(pm);
+const [label,cls,text,mask]=aqiInfo(aqi);
+aqiBadge.className="aqi "+cls;aqiBadge.textContent="AQI "+aqi+" · "+label;
+aqiText.textContent=text;maskTip.textContent=mask;aqiTrend.textContent="Based on last hour";
+
+drawChart("aqiChart",a.hourly.pm2_5.slice(0,24).map(pm25ToAQI),"#e53935");
+aqiBar.style.width=Math.min(aqi/3,100)+"%";aqiBar.style.background=aqiColor(aqi);
+pm25.textContent=a.hourly.pm2_5[0]+" µg/m³";
+pm10.textContent=a.hourly.pm10[0]+" µg/m³";
+o3.textContent=a.hourly.ozone[0]+" µg/m³";
+no2.textContent=a.hourly.nitrogen_dioxide[0]+" µg/m³";
+aqiDetails.textContent="Primary pollutant: "+(a.hourly.pm2_5[0]>a.hourly.pm10[0]?"PM2.5":"PM10");
+aqiAdvice.textContent=aqiHealthAdvice(aqi);
+
+const hourlyAQI=a.hourly.pm2_5.slice(0,24).map(pm25ToAQI);
+aqiHourly.innerHTML=hourlyAQI.map((v,i)=>`<div style="min-width:56px;padding:8px;border-radius:12px;background:${aqiColor(v)};color:#fff;text-align:center;font-size:12px"><div>${aqiIcon(v)}</div><strong>${v}</strong><div>${i}:00</div></div>`).join("");
+
+// 7-Day Forecast
+const daily=w.daily;
+if(daily && daily.temperature_2m_max && daily.temperature_2m_min){
+  forecast.innerHTML = daily.temperature_2m_max.map((maxTemp,i) => {
+    const minTemp = daily.temperature_2m_min[i];
+    return `<div class="row">
+              <span>Day ${i+1}</span>
+              <span>${maxTemp}° / ${minTemp}°</span>
+            </div>`;
+  }).join("");
+} else {
+  forecast.innerHTML = "<p class='small'>7-day forecast not available</p>";
+}
 }
 
-/* EVENTS */
-locBtn.onclick=()=>navigator.geolocation.getCurrentPosition(p=>loadWeather(p.coords.latitude,p.coords.longitude,"Current Location"));
+/* ---------------- EVENTS ---------------- */
+locBtn.onclick=()=>navigator.geolocation.getCurrentPosition(p=>{
+  loadWeather(p.coords.latitude,p.coords.longitude,"Current Location");
+  clearInterval(autoAQI);
+  autoAQI=setInterval(()=>loadWeather(p.coords.latitude,p.coords.longitude,"Current Location"),15*60*1000);
+});
+
 searchBtn.onclick=async()=>{
 const q=cityInput.value.trim();if(!q)return;
 const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`).then(r=>r.json());
 if(r.results)loadWeather(r.results[0].latitude,r.results[0].longitude,r.results[0].name);
 };
 
-loadWeather(28.61,77.23,"Delhi, India");
-
-/* PWA */
-let deferredPrompt;
-window.addEventListener("beforeinstallprompt",e=>{
-e.preventDefault();deferredPrompt=e;installBtn.style.display="block";
-});
-installBtn.onclick=()=>{deferredPrompt.prompt();installBtn.style.display="none";}
+const cache=JSON.parse(localStorage.getItem("skynox_cache")||"null");
+cache?loadWeather(cache.lat,cache.lon,cache.name):loadWeather(28.61,77.23,"Delhi, India");
+if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
 </script>
 </body>
 </html>

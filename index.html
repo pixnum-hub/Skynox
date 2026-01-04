@@ -136,16 +136,26 @@ body.amoled .banner{background:#111;color:#fff}
 
 <h3 id="location">--</h3>
 <h1 id="temp">--°</h1>
-<p id="feels" class="small">--</p>
+<p id="feels" class="small">Feels like --°</p>
 
+<!-- Current Conditions -->
 <div class="card">
   <h4>Current Conditions</h4>
   <div class="row"><span>💧 Humidity</span><span id="humidity">--%</span></div>
   <div class="row"><span>🌬 Wind</span><span id="wind">-- km/h</span></div>
   <div class="row"><span>🧭 Direction</span><span id="windDir">--</span></div>
+  <div class="row"><span>💨 Gust</span><span id="windGust">-- km/h</span></div>
+  <div class="row"><span>⛅ Clouds</span><span id="clouds">--%</span></div>
+  <div class="row"><span>☀️ UV Index</span><span id="uv">--</span></div>
   <div class="row"><span>⏲ Pressure</span><span id="pressure">-- hPa</span></div>
+  <div class="row"><span>🌧 Rain</span><span id="rain">-- mm</span></div>
+  <div class="row"><span>❄️ Snow</span><span id="snow">-- mm</span></div>
+  <div class="row"><span>🌙 Moon Phase</span><span id="moon">--</span></div>
+  <div class="row"><span>👁 Visibility</span><span id="visibility">-- km</span></div>
+  <div class="row"><span>⚠️ Alerts</span><span id="alerts">--</span></div>
 </div>
 
+<!-- AQI -->
 <div class="card">
   <h4>🌫 Air Quality</h4>
   <div id="aqiBadge" class="aqi">--</div>
@@ -171,12 +181,14 @@ body.amoled .banner{background:#111;color:#fff}
   </div>
 </div>
 
+<!-- 24h Temperature -->
 <div class="card">
   <h4>Next 24h Temperature</h4>
   <p id="hourMinMax" class="small">--</p>
   <canvas id="hourlyChart"></canvas>
 </div>
 
+<!-- 7-Day Forecast -->
 <div class="card">
   <h4>7-Day Forecast</h4>
   <div id="forecast"></div>
@@ -255,7 +267,7 @@ let lastLat,lastLon,autoAQI;
 async function loadWeather(lat,lon,name){
 lastLat=lat;lastLon=lon;
 const w=await fetch(
-`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,winddirection_10m,pressure_msl&daily=temperature_2m_min,temperature_2m_max&timezone=auto`
+`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,winddirection_10m,pressure_msl,cloudcover_0_1h,uv_index_0_1h,precipitation_1h,snowfall_1h,visibility_0_1km&daily=temperature_2m_min,temperature_2m_max,moon_phase&timezone=auto`
 ).then(r=>r.json());
 const a=await fetch(
 `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto`
@@ -269,19 +281,27 @@ humidity.textContent=w.hourly.relativehumidity_2m[0]+"%";
 wind.textContent=w.hourly.windspeed_10m[0]+" km/h";
 windDir.textContent=w.hourly.winddirection_10m[0]+"°";
 pressure.textContent=Math.round(w.hourly.pressure_msl[0])+" hPa";
+clouds.textContent=w.hourly.cloudcover_0_1h ? w.hourly.cloudcover_0_1h[0]+"%" : "--";
+uv.textContent=w.hourly.uv_index_0_1h ? w.hourly.uv_index_0_1h[0] : "--";
+rain.textContent=w.hourly.precipitation_1h ? w.hourly.precipitation_1h[0]+" mm" : "--";
+snow.textContent=w.hourly.snowfall_1h ? w.hourly.snowfall_1h[0]+" mm" : "--";
+windGust.textContent=w.hourly.windspeed_10m ? w.hourly.windspeed_10m[0]+" km/h" : "--";
+visibility.textContent=w.hourly.visibility_0_1km ? (w.hourly.visibility_0_1km[0]/1000).toFixed(1)+" km" : "--";
+moon.textContent=w.daily ? ["New","Waxing Crescent","First Quarter","Waxing Gibbous","Full","Waning Gibbous","Last Quarter","Waning Crescent"][Math.floor(w.daily.moon_phase[0]*7)] || "--" : "--";
+alerts.textContent=w.alerts && w.alerts.length ? w.alerts.map(a=>a.event).join(", ") : "None";
 
-const t24=w.hourly.temperature_2m.slice(0,24);
-hourMinMax.textContent=`Min ${Math.min(...t24)}° / Max ${Math.max(...t24)}°`;
-drawChart("hourlyChart",t24,"#42a5f5");
-
+/* AQI */
 const pm=a.hourly.pm2_5[0];
 const aqi=pm25ToAQI(pm);
 const [label,cls,text,mask]=aqiInfo(aqi);
-aqiBadge.className="aqi "+cls;aqiBadge.textContent="AQI "+aqi+" · "+label;
-aqiText.textContent=text;maskTip.textContent=mask;aqiTrend.textContent="Based on last hour";
-
+aqiBadge.className="aqi "+cls;
+aqiBadge.textContent="AQI "+aqi+" · "+label;
+aqiText.textContent=text;
+maskTip.textContent=mask;
+aqiTrend.textContent="Based on last hour";
 drawChart("aqiChart",a.hourly.pm2_5.slice(0,24).map(pm25ToAQI),"#e53935");
-aqiBar.style.width=Math.min(aqi/3,100)+"%";aqiBar.style.background=aqiColor(aqi);
+aqiBar.style.width=Math.min(aqi/3,100)+"%";
+aqiBar.style.background=aqiColor(aqi);
 pm25.textContent=a.hourly.pm2_5[0]+" µg/m³";
 pm10.textContent=a.hourly.pm10[0]+" µg/m³";
 o3.textContent=a.hourly.ozone[0]+" µg/m³";
@@ -292,15 +312,17 @@ aqiAdvice.textContent=aqiHealthAdvice(aqi);
 const hourlyAQI=a.hourly.pm2_5.slice(0,24).map(pm25ToAQI);
 aqiHourly.innerHTML=hourlyAQI.map((v,i)=>`<div style="min-width:56px;padding:8px;border-radius:12px;background:${aqiColor(v)};color:#fff;text-align:center;font-size:12px"><div>${aqiIcon(v)}</div><strong>${v}</strong><div>${i}:00</div></div>`).join("");
 
+// 24h Temperature
+const t24=w.hourly.temperature_2m.slice(0,24);
+hourMinMax.textContent=`Min ${Math.min(...t24)}° / Max ${Math.max(...t24)}°`;
+drawChart("hourlyChart",t24,"#42a5f5");
+
 // 7-Day Forecast
 const daily=w.daily;
 if(daily && daily.temperature_2m_max && daily.temperature_2m_min){
   forecast.innerHTML = daily.temperature_2m_max.map((maxTemp,i) => {
     const minTemp = daily.temperature_2m_min[i];
-    return `<div class="row">
-              <span>Day ${i+1}</span>
-              <span>${maxTemp}° / ${minTemp}°</span>
-            </div>`;
+    return `<div class="row"><span>Day ${i+1}</span><span>${maxTemp}° / ${minTemp}°</span></div>`;
   }).join("");
 } else {
   forecast.innerHTML = "<p class='small'>7-day forecast not available</p>";
@@ -322,7 +344,6 @@ if(r.results)loadWeather(r.results[0].latitude,r.results[0].longitude,r.results[
 
 const cache=JSON.parse(localStorage.getItem("skynox_cache")||"null");
 cache?loadWeather(cache.lat,cache.lon,cache.name):loadWeather(28.61,77.23,"Delhi, India");
-if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
 </script>
 </body>
 </html>
